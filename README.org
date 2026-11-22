@@ -1,0 +1,92 @@
+* unique-id
+
+[[https://github.com/Kiyomi-Computation-Systems/unique-id/actions/workflows/ci.yml][https://github.com/Kiyomi-Computation-Systems/unique-id/actions/workflows/ci.yml/badge.svg]]
+
+UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
+[[https://www.rfc-editor.org/rfc/rfc9562][RFC 9562]] defines them.
+
+#+begin_quote
+✨ *AI Disclosure:* LLMs are used extensively in the planning and development of this project.
+#+end_quote
+
+** Features
+
+- *Text and bytes.* Read the 36-character form in either case, write it in
+  lower case, and turn an id into its 16 bytes and back.
+- *Version 4 and version 7.* Make either from bits you supply, or from a
+  generator.
+- *Ids that sort by time.* One generator's v7 ids always increase: within one
+  millisecond, when the clock steps back, and when the counter runs out.
+- *Look inside.* An id's version, its variant, and a v7 id's timestamp.
+- *Compare and hash.* =uuid=?=, =uuid<?=, and =uuid-hash= for hashtables. The
+  nil and max ids.
+- *Plain R6RS.* Tested on Chez Scheme and Guile. Only ~(unique-id system)~
+  needs more: SRFI-19 for the clock, and ~/dev/urandom~.
+
+Nothing is released yet, and no library code exists: the build and the test
+harness are in place. The names below may change in any release before 1.0;
+[[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
+
+** Quick start
+
+#+begin_src scheme
+(import (rnrs) (unique-id) (unique-id generator) (unique-id system))
+
+(define gen (make-system-uuid-generator))
+
+(define id (generate-v7 gen))
+(uuid->string id)               ; 36 characters, lower case
+(uuid-version id)               ; => 7
+(uuid-v7-timestamp id)          ; => milliseconds since 1970
+
+(uuid<? id (generate-v7 gen))   ; => #t: the next id is always greater
+
+(string->uuid "not an id")      ; => #f
+
+(define nodes (make-hashtable uuid-hash uuid=?))
+(hashtable-set! nodes id 'root)
+#+end_src
+
+An id is a record. Compare ids with =uuid=?=, not =equal?=, which Schemes
+answer differently for records.
+
+Three libraries:
+
+- ~(unique-id)~ :: ids themselves. No clock, no randomness: you pass in every
+  bit that varies.
+- ~(unique-id generator)~ :: makes ids from a clock and a source of random
+  bytes that you give it.
+- ~(unique-id system)~ :: the system's clock and ~/dev/urandom~, and a
+  generator made of them.
+
+** Build and test
+
+You need Linux or macOS, on x86-64 or arm64, with:
+
+- Chez Scheme, as ~scheme~ or ~chez~ on ~PATH~, or named by ~CHEZ~. CI builds
+  10.4.1; 10.4.0 runs the suites too.
+- Guile 3, as ~guile~ or ~guile-3.0~ on ~PATH~, or named by ~GUILE~. CI
+  installs Ubuntu 24.04's 3.0.9; 3.0.11 runs the suites too.
+- GNU make, and GNU ~timeout~ (~brew install coreutils~ on macOS).
+
+On Chez, the suites and ~(unique-id system)~ take SRFI-64 and SRFI-19 from
+[[https://github.com/arcfide/chez-srfi][chez-srfi]], pinned under ~vendor/~. Guile has its own.
+
+#+begin_src sh
+git clone https://github.com/Kiyomi-Computation-Systems/unique-id.git
+cd unique-id
+make submodules   # clones chez-srfi at its pin
+make test         # the checks, then every suite on Chez and on Guile
+#+end_src
+
+~make help~ lists every target.
+
+** Credits
+
+The formats, and the test vectors the suites check, are from [[https://www.rfc-editor.org/rfc/rfc9562][RFC 9562]],
+/Universally Unique IDentifiers (UUIDs)/, by K. Davis, B. Peabody and P. Leach.
+
+** License
+
+© [[https://kiyomicomputation.systems/][Kiyomi Computation Systems LLC]]. Licensed under BSD 3-Clause — see
+[[file:LICENSE][LICENSE]].
