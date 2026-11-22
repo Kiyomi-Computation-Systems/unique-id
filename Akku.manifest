@@ -1,0 +1,13 @@
+#!r6rs ; -*- scheme -*-
+(import (akku format manifest))
+
+;; The package installs the libraries under src/, which are plain R6RS. It
+;; names no dependency: none of its libraries imports anything outside
+;; (rnrs ...) yet. The suites' SRFI-64 comes from chez-srfi, a submodule
+;; under vendor/, so the manifest names no dev dependency either. .akkuignore keeps the tests, the tooling and the plans out of
+;; the package.
+(akku-package ("unique-id" "0.1.0")
+  (synopsis "UUIDs, versions 4 and 7 (RFC 9562), for R6RS Scheme")
+  (authors "Kiyomi Computation Systems LLC")
+  (homepage "https://github.com/Kiyomi-Computation-Systems/unique-id")
+  (license "BSD-3-Clause"))
