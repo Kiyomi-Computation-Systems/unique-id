@@ -9,6 +9,8 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **The scaffold is on the branch `scaffold`**, not yet merged. A read-only adversarial
   review, on Opus, found 10 defects. Each was reproduced, and each is fixed on the
   branch; the close-out will list them.
+- **CI passes on the PR**, on amd64 and arm64: Chez 10.4.1 built from source, Ubuntu's
+  Guile 3.0.9, every lane run.
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to.
@@ -30,7 +32,6 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 
 ## Open
 
-- **CI has not run.** Its Guile steps are new; its Chez steps are threading's.
 - **On CI, no lane catches a test that expects `#f` from a raise**: chez-srfi and Guile
   3.0.9 both pass it. AGENTS.md forbids such tests. Only the host's Guile 3.0.11 catches
   one (ADR-0003).
