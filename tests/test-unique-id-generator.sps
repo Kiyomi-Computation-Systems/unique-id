@@ -6,13 +6,15 @@
 ;;; log. The log holds `clock` for each call to the clock and N for each call
 ;;; to the entropy source asking for N bytes, in the order the calls came. A
 ;;; stand-in asked more times than it was scripted for logs `clock-overrun` or
-;;; `entropy-overrun`, so the log shows it. Every call into the library runs
-;;; under a guard that tags what happened: (value V), with an id in V turned to
-;;; (id TEXT) so that it never equals a string, (violation WHO OK?) for an assertion violation, (error WHO OK?) for an
-;;; `error`, (raised X) for anything else a stand-in raised, and
+;;; `entropy-overrun`, so the log shows it.
+;;;
+;;; Every call into the library runs under a guard that tags what happened:
+;;; (value V), with an id in V turned to (id TEXT) so that it never equals a
+;;; string; (violation WHO OK?) for an assertion violation; (error WHO OK?)
+;;; for an `error`; (raised X) for anything else a stand-in raised; and
 ;;; (raised-condition) for any other condition. OK? is #t when the one
-;;; irritant is eqv? to the one expected. Ids are compared as text, never with
-;;; equal?. The monotonic order of ids belongs to another suite.
+;;; irritant is eqv? to the one expected. Ids are compared as text, never
+;;; with equal?. The monotonic order of ids belongs to another suite.
 (import (rnrs)
         (srfi :64)
         (unique-id)

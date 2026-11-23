@@ -4,18 +4,23 @@
 ;;;
 ;;; Each run drives generate-v7 over a scripted clock and an entropy source
 ;;; that draws from a seeded linear congruential generator, and checks every
-;;; id it answers. An id is greater than the last id the same generator
-;;; answered, under uuid<?, unless the clock is more than 10000 ms below that
-;;; id's timestamp, when the id is a reset and its timestamp is the clock's
-;;; answer; its timestamp is at least the clock's answer, and is that answer
-;;; whenever it exceeds every earlier timestamp since the last reset, and is at
-;;; most 10001 ms past the clock's answer; it is
-;;; version 7 with variant rfc9562. The clock is called once per id, and the entropy
-;;; source once, for 8 or 10 bytes. The runs are a held clock, a clock that
-;;; steps back and holds, a clock that steps back exactly 10000 ms and holds, a
-;;; clock that steps back 10001 ms, a clock that steps back 10001 ms from a full counter, a
-;;; clock that jumps forward, a random walk of the
-;;; clock, a held clock at 2^48 - 2, and two generators over one clock.
+;;; id it answers against the last id the same generator answered:
+;;;
+;;;   - When the clock is more than 10000 ms below the last id's timestamp,
+;;;     the id is a reset: its timestamp is the clock's answer.
+;;;   - Otherwise the id is greater, under uuid<?.
+;;;   - Every id's timestamp is from the clock's answer to 10001 ms past it,
+;;;     and is the clock's answer whenever that exceeds every earlier
+;;;     timestamp since the last reset.
+;;;   - Every id is version 7, of variant rfc9562.
+;;;   - The clock is called once per id, and the entropy source once, for 8
+;;;     or 10 bytes.
+;;;
+;;; The runs are a held clock; a clock that steps back and holds; one that
+;;; steps back exactly 10000 ms and holds; one that steps back 10001 ms; one
+;;; that steps back 10001 ms from a full counter; one that jumps forward; a
+;;; random walk of the clock; a held clock at 2^48 - 2; and two generators
+;;; over one clock.
 ;;;
 ;;; Every call into the library is guarded, so a raise is recorded as a
 ;;; failure and ends its run. A run answers its first failures, which must be

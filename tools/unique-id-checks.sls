@@ -4,8 +4,9 @@
 ;;;
 ;;; A Complaint is (list PATH RULE DETAIL): the file it is about, a symbol
 ;;; naming the rule it breaks, and a sentence for a person. The programs
-;;; tools/check-suites.sps and tools/check-imports.sps print the details and
-;;; set the exit status; the suites assert the paths and the rules.
+;;; tools/check-suites.sps, tools/check-imports.sps and tools/check-tests.sps
+;;; print the details and set the exit status; the suites assert the paths
+;;; and the rules.
 ;;;
 ;;; It also holds what the audits' suites share: written, describe and
 ;;; run-check.
@@ -178,8 +179,8 @@
   ;; import-complaints : String -> (Listof Complaint)
   ;; What keeps the tree at ROOT from being plain R6RS libraries that import
   ;; only (rnrs ...) and (unique-id ...), and (srfi :19) in (unique-id
-  ;; system) alone. Each complaint's path is relative to
-  ;; ROOT; "." is ROOT itself. The rules, for each file in path order:
+  ;; system) alone. Each complaint's path is relative to ROOT; "." is ROOT
+  ;; itself. The rules, for each file in path order:
   ;;
   ;;   not-regular   a link or anything else that is not a regular file or a
   ;;                 directory
@@ -462,8 +463,9 @@
                        (string-append "it imports " (written ref) not-allowed))))))))
 
   ;; tests-policy : (Listof Library-Name) (Listof Library-Name) -> Policy
-  ;; A file under tests/ may import (srfi :64), (srfi :19), the (unique-id ...)
-  ;; libraries in SRC-NAMES, and the libraries in TEST-NAMES, those under tests/.
+  ;; A file under tests/ may import (srfi :64), (srfi :19), the
+  ;; (unique-id ...) libraries in SRC-NAMES, and the libraries in TEST-NAMES,
+  ;; those under tests/.
   (define (tests-policy src-names test-names)
     (lambda (rel ref)
       (cond

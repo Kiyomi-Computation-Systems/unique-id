@@ -11,9 +11,9 @@
 #
 # PREFIX must be an absolute path. Nothing is installed outside it.
 #
-# Moving the version is a reviewed change: fetch the new release tarball,
-# compare its sha256 with the digest the GitHub releases API lists for the
-# asset, and change version and sum below together, with README.org.
+# To move the version: fetch the new release tarball, compare its sha256
+# with the digest the GitHub releases API lists for the asset, and change
+# version and sum below together, with README.org.
 set -eu
 
 version=10.4.1

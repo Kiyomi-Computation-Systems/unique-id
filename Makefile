@@ -35,8 +35,8 @@ endif
 export GUILE
 
 # --- the pin ------------------------------------------------------------------
-# chez-srfi tags no releases. This is the commit threading, chez-http-server
-# and circuit pin, so they all run the same SRFI-64.
+# chez-srfi tags no releases, so the pin is a commit. Move SRFI_PIN and the
+# submodule's gitlink together: make check-pins holds them equal.
 SRFI_DIR := vendor/chez-srfi
 SRFI_PIN := 7879b527f267f067416552fb989135ad1b4ea436
 

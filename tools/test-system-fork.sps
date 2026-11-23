@@ -11,16 +11,13 @@
 ;;; fails the first three; a hash key that is the same in every process (a
 ;;; counter, say) fails the last.
 ;;;
-;;; Expected survivor: a hash key of 4 random bytes and 4 zero bytes still
-;;; differs between processes, and this suite cannot tell it from a full key.
-;;;
 ;;; No plain R6RS suite can fork, which is why it lives under tools/, on
 ;;; Chez alone. The Chez to run comes from the environment's CHEZ, which
 ;;; make exports; without it the suite fails. The probe's libraries come from
-;;; FORK_LIBDIRS, else src:build/scheme-libs, so a mutation run can put a
-;;; copy of (unique-id system) first:
+;;; FORK_LIBDIRS, else src:build/scheme-libs, so a stand-in copy of
+;;; (unique-id system) in DIR can go first:
 ;;;
-;;;   FORK_LIBDIRS=build/mutant:src:build/scheme-libs make test-tools
+;;;   FORK_LIBDIRS=DIR:src:build/scheme-libs make test-tools
 (import (rnrs)
         (srfi :64)
         (unique-id-testing)
@@ -32,8 +29,8 @@
 
 (define probe "tools/fork-probe.sps")
 
-;; The probe's files, named for this process, so that runs side by side,
-;; as in a mutation run, never share one.
+;; The probe's files, named for this process, so that runs side by side
+;; never share one.
 (define stem (string-append "build/fork-probe-" (number->string (get-process-id))))
 (define out (string-append stem ".out"))
 (define err (string-append stem ".err"))

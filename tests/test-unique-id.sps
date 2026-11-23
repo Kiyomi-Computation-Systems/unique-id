@@ -33,9 +33,10 @@
 
 ;; attempt-error : (-> (Listof Any)) Any Nat
 ;;                 -> (U (List 'violation Symbol Boolean) (List 'value Any) (List 'raised))
-;; Applies the procedure PROC to the list MAKE-ARGS answers. An assertion violation gives
-;; (violation WHO OK?): OK? is #t when its irritants are a one-element list
-;; whose element is eqv? to argument number K, counted from 0.
+;; Applies the procedure PROC to the list MAKE-ARGS answers. An assertion
+;; violation gives (violation WHO OK?): OK? is #t when its irritants are a
+;; one-element list whose element is eqv? to argument number K, counted
+;; from 0.
 (define (attempt-error make-args proc k)
   (let ((args '()))
     (guard (e ((assertion-violation? e)
@@ -92,8 +93,9 @@
   (lambda () (uuid->bytevector (bytevector->uuid bv))))
 
 ;; make-lcg : Nat -> (-> Nat)
-;; A seeded generator. Each call steps state' = (1664525 * state + 1013904223) mod 2^32 and
-;; answers state' >> 24, an octet.
+;; A seeded generator. Each call steps
+;; state' = (1664525 * state + 1013904223) mod 2^32 and answers state' >> 24,
+;; an octet.
 (define (make-lcg seed)
   (let ((state seed))
     (lambda ()

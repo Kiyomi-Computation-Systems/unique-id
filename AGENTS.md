@@ -131,9 +131,9 @@
   records' hard rules and binds every task brief. Read both before starting slice work.
   `/.superpowers/` is git-ignored plugin scratch, not the ledger.
 * Code comments, `README.org` and `/docs` describe the code as it is: never cite a plan,
-  slice, decision record, review, date, or PR or issue number. State the fact or the
-  reason itself, in the present tense. History belongs in `/.plans`, the ledger,
-  `CHANGELOG.md` and git.
+  slice, decision record, review, mutation run, date, or PR or issue number. State the
+  fact or the reason itself, in the present tense, for a developer using or changing
+  the code. History belongs in `/.plans`, the ledger, `CHANGELOG.md` and git.
 * Add entries to `CHANGELOG.md` for each release.
 * `/docs` is for user facing documentation only.
 * Documentation should be very concise, focused, to the point, ELI5 style.
