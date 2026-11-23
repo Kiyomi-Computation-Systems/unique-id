@@ -13,10 +13,16 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to; later answers are recorded there too.
 - **Preparing a release.** On 2026-11-23 the owner started preparing for an eventual
-  release. The first step, a sweep of the code comments, is merged, squashed from
-  [PR #5](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/5); its
-  close-out is below. When to publish on Akku is still the owner's call: the brief
-  says "not at once". The items under **Open** are the known work.
+  release. Two steps are merged, each with a close-out below:
+  - a sweep of the code comments, squashed from
+    [PR #5](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/5);
+  - the docs, the generated API reference and the docs site, squashed from
+    [PR #6](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/6).
+    ADR-0009, which records them, is still Proposed: it waits on the owner. GitHub
+    Pages is on, but nothing has deployed the site yet.
+
+  When to publish on Akku is still the owner's call: the brief says "not at once". The
+  items under **Open** are the known work.
 
 ## Slices
 
@@ -62,6 +68,98 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   Nothing has run on an Intel Mac.
 
 ## Close-outs
+
+### The docs: PR #6, 2026-11-23
+
+- **The owner's request:** a `docs/` like threading's, of clear, pragmatic, ELI5 pages
+  on how the library works and how to use it, and an API reference, built by
+  subagents in parallel as threading's was.
+- **What merged:**
+  - **The pages:** `docs/`, nine of them: Home, Getting started, Quickstart, five
+    guides (Ids, Generators, The system library, Hash tables, Errors), and the API
+    reference. The contract they were written to is [docs.md](docs.md).
+  - **The reference generator:** `(unique-id-reference)` and `tools/reference.sps`,
+    which `make reference` runs. Its suite, 27 tests in the tools lane, also fails
+    `make test` while `docs/reference.md` is stale. Ten fixture trees.
+  - **The site:** a port of threading's `site/`, `build-site.sps`,
+    `scripts/fetch-akku-lock` and `Akku.lock`, which pins chez-cmark-gfm 2.0.0. `make
+    site-deps`, `make site` and `make check-site`; the site's suites: unit (14 tests),
+    render (11) and the broken-tree fixtures (7), and `site-check` over the real
+    `docs/`.
+  - **CI and Pages:** a `docs` job in `ci.yml`, on Ubuntu's Chez 9.5.8 and
+    `cmark-gfm`, and `pages.yml`, threading's, which deploys on a `v*` tag or by hand.
+  - **Records:** ADR-0009, Proposed. Also AGENTS.md, the global constraints, README.org,
+    CHANGELOG.md, `Akku.manifest`'s dev dependency and `.akkuignore`. In `src/`, two
+    comments only: two library headers now open with a capital, and one quote is
+    Markdown's, as each renders on the reference page.
+- **The owner's choices:**
+  - The reference generated from the source, over a hand-written one.
+  - The docs and the site in one piece of work.
+  - GitHub Pages turned on. It builds from Actions, and its `github-pages` environment
+    deploys from `main` and from `v*` tags alone, as threading's does.
+- **Chosen with the work, in ADR-0009, which waits on the owner:**
+  - The reference takes each export's call shape, its signature and the comment's
+    first paragraph. Later paragraphs, after a line that is `;;` alone, are notes for
+    whoever changes the code. Each library's header comment opens its section, less
+    the export table.
+  - The staleness suite is the one test that reads code comments.
+  - Links go to a page, a heading on the same page, or one of the reference's three
+    library sections.
+  - The `docs` job runs Chez 9.5.8, not the 10.4.1 the `linux` jobs build.
+  - The package installs `src/` alone: `.akkuignore` leaves out `docs/`, `site/` and
+    `build-site.sps`.
+- **How it was built:**
+  - A contract, [docs.md](docs.md), and a read-only review of it on Opus before any
+    building.
+  - Then five Sonnet agents, on disjoint files: the reference generator, the site port,
+    and three writers, each with its own pages.
+  - A read-only adversarial review on Opus, and four Sonnet fixers.
+- **Verified:**
+  - `make test` on Chez 10.4.0 and Guile 3.0.11: every lane passes.
+  - `make check-site` passes on the real `docs/`, and each broken tree fails it as
+    expected. `make site` writes nine pages.
+  - The code blocks were extracted from the final pages and run: all 72 `;; =>`
+    results match on both Schemes.
+  - Changing a comment in `src/` fails the reference staleness test alone.
+  - **Mutants of the reference generator:** four, A to D, fail 3, 5, 2 and 2 tests.
+  - CI on amd64 and arm64, and the `docs` job, with Chez 9.5.8.
+- **The contract review**, before building, found 16 problems. Among them:
+  - a wrong path to the `libcmark-gfm` library;
+  - no fixture tree for `SITE_DOCS`, and gaps in the planned suites;
+  - writers left to guess at the reference's anchors, now limited to three;
+  - editor litter in `src/`, which the generator now skips through `library-files`;
+  - `../` links that nothing checked;
+  - the packages CI's `docs` job needs, and no `make site` in it.
+
+  All of these were fixed before any builder started.
+- **The final review** found 18 problems, each reproduced and fixed. Among them:
+  - **The README's first example printed `#f` on Chez.** `(uuid<? (generate-v7 gen)
+    (generate-v7 gen))` makes its second argument first. The examples now name each
+    id with `define`.
+  - claims that v7 ids "always increase", which the clock reset breaks;
+  - a claim about the system library's cost, now a table of measured costs;
+  - a claim in errors.md about input from outside;
+  - a reference-style `../` link that `site-check` missed;
+  - the broken fixture trees, which no suite ran;
+  - reference generator mutants that passed every test;
+  - the page template's meta tags, which nothing asserted;
+  - repetition, rewrapping and a stray `###` heading.
+- **Caught in hand-backs:** a fixer reported the reference suite as flaky. It was
+  run without `CHEZ` and `TOOL_LIBDIRS`, which fails exactly ten tests; through `make`
+  it passed three times in a row.
+- **Also learned:**
+  - Chez evaluates a call's arguments right to left in a program, so two calls that
+    each make an id, in one call's arguments, make them in reverse.
+  - **Costs on Chez 10.4.0:** `generate-v7` on the system generator 1.47 µs,
+    `system-entropy` 1.37 µs, `make-uuid-v7` 0.027 µs.
+  - **Akku:** `akku lock` also pins chez-srfi `0.0.0-akku.291.5219353`, which the site
+    does not use.
+  - This host has no system `libcmark-gfm`; `CHEZ_CMARK_GFM_LIBS` names the libraries
+    built in `~/src/chez-cmark-gfm`.
+  - Turning Pages on makes the `github-pages` environment with a `main` branch rule
+    alone: a `v*` tag's deploy needs its own rule.
+  - A hand-run workflow needs its file on `main`, so the site cannot deploy before the
+    merge.
 
 ### The comment sweep: PR #5, 2026-11-23
 

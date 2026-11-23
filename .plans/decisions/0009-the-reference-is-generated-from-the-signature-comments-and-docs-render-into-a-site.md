@@ -48,7 +48,9 @@ Those comments are the API's contract, and the suites test what they say.
    `linux` jobs build and assert: the site is development tooling, not the library, and
    threading's site runs on 9.5.8.
 6. **Pages deploys the site** on a `v*` tag, or by hand, gated on `make check-site`.
-   Switching GitHub Pages on, with GitHub Actions as its source, is the owner's step.
+   GitHub Pages builds from GitHub Actions, and its `github-pages` environment deploys
+   from `main` and from `v*` tags alone, as threading's does. The site is
+   https://kiyomi-computation-systems.github.io/unique-id/.
 7. **The package installs `src/` alone**: `.akkuignore` leaves out `docs/`, `site/` and
    `build-site.sps`, as it does the tests and the tooling.
 
