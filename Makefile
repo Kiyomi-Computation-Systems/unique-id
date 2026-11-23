@@ -7,7 +7,8 @@
 #   chez   tests/test-*.sps on Chez Scheme, with SRFI-64 and SRFI-19 from
 #          chez-srfi
 #   guile  the same suites on Guile 3 in R6RS mode, with Guile's own SRFIs
-#   tools  tools/test-*.sps, the audits' own suites, on Chez alone
+#   tools  tools/test-*.sps, the audits' own suites and the fork suite, on
+#          Chez alone
 #
 # chez-srfi is a submodule pinned under vendor/. `make submodules` clones it,
 # once, where the network is; `make check-pins` holds it at SRFI_PIN; `make
@@ -81,14 +82,20 @@ TEST_TIMEOUT ?= 120
 # GNU timeout. Homebrew's coreutils installs it as gtimeout on macOS.
 TIMEOUT ?= $(or $(shell command -v timeout 2>/dev/null),$(shell command -v gtimeout 2>/dev/null),timeout)
 
+# Open file descriptors a suite may hold, set with ulimit -n. A suite that
+# leaks ports fails within about 64 calls on every Scheme; Guile closes the
+# ports its collector finds, so under a higher limit it hides the leak.
+FD_LIMIT ?= 64
+
 # lane NAME, COMMAND, SUITES, DIR: one shell command, in a subshell, that
 # runs each of SUITES as its own process, COMMAND /abs/path/to/SUITE, from
-# the directory DIR, under GNU timeout, and reports its exit status, or HUNG
-# when timeout killed it (exit 124). It exits 1 if any suite failed or hung,
-# or if SUITES is empty. At a terminal, --foreground keeps a suite in make's
-# process group, so Ctrl-C reaches it. The Guile lane runs from build/guile,
-# because Guile 3.0.9's SRFI-64 writes SUITE-NAME.log to the directory it
-# runs in.
+# the directory DIR, under GNU timeout and ulimit -n FD_LIMIT, chained with
+# && so that a shell that refuses the cap runs nothing, and reports its exit
+# status, or HUNG when timeout killed it (exit 124). It exits 1 if any suite
+# failed or hung, or if SUITES is empty. At a terminal, --foreground keeps a
+# suite in make's process group, so Ctrl-C reaches it. The Guile lane runs
+# from build/guile, because Guile 3.0.9's SRFI-64 writes SUITE-NAME.log to
+# the directory it runs in.
 lane = ( \
   if [ -z "$(strip $(3))" ]; then \
     echo "$(1): no suites to run" >&2; \
@@ -103,7 +110,7 @@ lane = ( \
   if [ -t 0 ]; then fg=--foreground; fi; \
   for t in $(3); do \
     echo "=== $(1) $$t"; \
-    ( cd $(4) && exec $(TIMEOUT) $$fg $(TEST_TIMEOUT) $(2) $(CURDIR)/$$t ); \
+    ( cd $(4) && ulimit -n $(FD_LIMIT) && exec $(TIMEOUT) $$fg $(TEST_TIMEOUT) $(2) $(CURDIR)/$$t ); \
     rc=$$?; \
     if [ $$rc -eq 0 ]; then \
       echo "$(1): pass $$t"; passed=$$((passed + 1)); \
@@ -246,7 +253,7 @@ test-chez: deps ## Run tests/test-*.sps on Chez; fail if one fails or hangs, or 
 test-guile: check-guile ## Run tests/test-*.sps on Guile; fail if one fails or hangs, or none exists
 	@$(call lane,guile,$(GUILE_RUN),$(SUITES),$(GUILE_DIR))
 
-test-tools: deps ## Run tools/test-*.sps, the audits' own suites, on Chez
+test-tools: deps ## Run tools/test-*.sps, the audits' own suites and the fork suite, on Chez
 	@$(call lane,tools,$(TOOL_RUN),$(TOOL_SUITES),$(CURDIR))
 
 # Reads every suite of every lane as data and fails unless each one's last
@@ -268,10 +275,10 @@ check-imports: deps ## Fail unless every file under src/ is a plain R6RS library
 # Reads every file under tests/ and fails unless each is a plain R6RS library
 # or program that both lanes load alike: STEM.sls or STEM.sps with no other
 # dot, no (unique-id ...) library, first line #!r6rs and no #! after it,
-# importing only (rnrs ...) but (rnrs eval), (srfi :64), the (unique-id ...)
-# libraries under src/ and the libraries under tests/
+# importing only (rnrs ...) but (rnrs eval), (srfi :64), (srfi :19), the
+# (unique-id ...) libraries under src/ and the libraries under tests/
 # (tools/check-tests.sps).
-check-tests: deps ## Fail unless every file under tests/ is plain R6RS, importing only (rnrs ...), (srfi :64), the library and tests/' own
+check-tests: deps ## Fail unless every file under tests/ is plain R6RS, importing only (rnrs ...), (srfi :64), (srfi :19), the library and tests/' own
 	@$(CHEZ) --libdirs $(TOOL_LIBDIRS) --program tools/check-tests.sps tests src
 
 clean: ## Remove build/

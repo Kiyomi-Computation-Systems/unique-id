@@ -23,8 +23,8 @@ provisional. They bind until that record is accepted or amended.
 - **Three libraries**: `(unique-id)`, the pure core, with no clock and no entropy;
   `(unique-id generator)`, which takes both as arguments; `(unique-id system)`, the
   system's clock and `/dev/urandom` (ADR-0001).
-- **An id is an opaque, sealed record of 16 bytes.** `uuid=?`, `uuid<?` and `uuid-hash`
-  compare and hash it; `equal?` on ids is no part of the contract (ADR-0004).
+- **An id is an opaque, sealed record of 16 bytes.** `uuid=?`, `uuid<?`, `uuid-hash`
+  and `make-uuid-hash`'s procedures compare and hash it; `equal?` on ids is no part of the contract (ADR-0004).
 - **Every exported procedure checks its own arguments**: one outside its domain raises an
   assertion violation whose who is the procedure's name and whose one irritant is that
   argument. `string->uuid` reads the canonical 36-character form alone, ASCII hex in
@@ -36,16 +36,29 @@ provisional. They bind until that record is accepted or amended.
   generator as it was (ADR-0006).
 - **SRFI-19 is the library's one dependency**: chez-srfi's on Chez, Guile's own on Guile
   (ADR-0002).
+- **`make-uuid-hash` answers HalfSipHash-2-4 of an id's 16 octets** under an 8-byte key,
+  the reference's 32-bit output read little-endian. Its arithmetic is generic and stays
+  below 2^33; `uuid-hash`'s stays below 2^23 in `fx` operations. Its procedure raises
+  under its maker's name (ADR-0007).
+- **`(unique-id system)` reads `time-utc`, never `time-monotonic` or `time-tai`, and
+  opens `/dev/urandom` unbuffered at every call that reads**, closing it whether the read returns or
+  raises, so no port outlives a call. It holds no generator or hash of its own
+  (ADR-0008).
 
 ## Tests and tooling
 
 - **The library suites, `tests/test-*.sps`, run on Chez and on Guile 3.** `tests/` is
   plain R6RS: `STEM.sls` and `STEM.sps` files alone, no `(unique-id ...)` library,
-  importing only `(rnrs ...)` but `(rnrs eval)`, `(srfi :64)`, the library and `tests/`'
-  own libraries. `make check-tests` holds it, and `make test` runs it (ADR-0001).
+  importing only `(rnrs ...)` but `(rnrs eval)`, `(srfi :64)`, `(srfi :19)`, the library
+  and `tests/`' own libraries. `make check-tests` holds it, and `make test` runs it
+  (ADR-0001, and ADR-0008 for `(srfi :19)`).
+- **Every lane runs each suite under `ulimit -n 64`**, so a leaked port fails on every
+  Scheme (ADR-0008).
 - **The Guile lane runs with `GUILE_LOAD_PATH` and `GUILE_LOAD_COMPILED_PATH` unset,
   `XDG_CACHE_HOME` under `build/`, from `build/guile`** (ADR-0003).
 - **The audits under `tools/` run on Chez alone** and may use `(chezscheme)` (ADR-0001).
+  So does the fork suite, which runs `(unique-id system)` in a child program with `src/`
+  on the child's path alone; the tools lane's own path leaves `src/` out (ADR-0008).
 - **chez-srfi is at `vendor/chez-srfi`, pinned at `SRFI_PIN`,
   `7879b527f267f067416552fb989135ad1b4ea436`.** Move the gitlink and `SRFI_PIN` on one
   commit; `make check-pins` holds them. `make deps` never fetches (ADR-0002).

@@ -40,17 +40,16 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 
 ## Open
 
-- **`uuid-hash` can be flooded until slice 3.** It is unkeyed and linear under xor, so
-  anyone can make many valid ids that share a hash. README.org warns against keying a
-  table by client ids with it; slice 3 adds a keyed hash.
 - **On CI, no lane catches a test that expects `#f` from a raise**: chez-srfi and Guile
   3.0.9 both pass it. AGENTS.md forbids such tests. Only the host's Guile 3.0.11 catches
   one (ADR-0003).
-- **`Akku.manifest` has not been read by `akku`**, which is not installed on the
-  development host, and names no dependency yet. Slice 3 settles both.
+- **Nothing checks that the Guile lane searches `src/` before `tests/`.** The Makefile's
+  order was wrong for two slices, and a builder found it, not a check. A tools test that
+  plants a shadow library and asserts it loses would hold it.
 - **Two `run-check` behaviours are untested**: that it runs `$CHEZ` rather than whatever
   `scheme` is on `PATH`, and that the child's stdin is `/dev/null`.
-- **Nothing has run on macOS**, which the Makefile and the scripts aim to support.
+- **Nothing has run on macOS**, which the Makefile and the scripts aim to support. The
+  fork suite is the likeliest to break there: it loads libc by name to find `fork`.
 
 ## Close-outs
 

@@ -34,13 +34,13 @@
     (map (lambda (c) (list (car c) (cadr c))) (complaints name))))
 
 (define not-allowed
-  "; a file under tests/ imports only (rnrs ...), (srfi :64), (unique-id ...) and the libraries under tests/")
+  "; a file under tests/ imports only (rnrs ...), (srfi :64), (srfi :19), (unique-id ...) and the libraries under tests/")
 
 (test-begin "check-tests")
 
 ;; --- the rules --------------------------------------------------------------
 
-(test-equal "legal: (rnrs ...), (srfi :64), the library and tests/' own, through wrappers"
+(test-equal "legal: (rnrs ...), (srfi :64), (srfi :19), the library and tests/' own, through wrappers"
   '() (complained "legal"))
 
 (test-equal "legal: the library and the suite are both counted"
@@ -59,14 +59,13 @@
     (let ((found (filter (lambda (c) (eq? (cadr c) 'shadow)) (complaints "names"))))
       (if (= (length found) 1) (caddr (car found)) (list 'found found)))))
 
-(test-equal "imports: another SRFI, Chez, a missing library, eval, the audits' library, SRFI-19"
+(test-equal "imports: another SRFI, Chez, a missing library, eval, the audits' library"
   (list (list "test-a.sps" 'import (string-append "it imports (srfi :1)" not-allowed))
         (list "test-a.sps" 'import (string-append "it imports (chezscheme)" not-allowed))
         (list "test-a.sps" 'import "it imports (unique-id nope), which no file under src/ holds")
         (list "test-a.sps" 'import
               "it imports (rnrs eval), whose environment reaches any library at run time")
-        (list "test-a.sps" 'import (string-append "it imports (unique-id-checks)" not-allowed))
-        (list "test-a.sps" 'import (string-append "it imports (srfi :19)" not-allowed)))
+        (list "test-a.sps" 'import (string-append "it imports (unique-id-checks)" not-allowed)))
   (complaints "imports"))
 
 (test-equal "programs: a library's rules hold under tests/, and a program's own"

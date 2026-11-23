@@ -18,14 +18,13 @@ UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
 - *Ids that sort by time.* One generator's v7 ids increase: within one
   millisecond, when the clock steps back by up to 10 seconds, and when the counter runs out.
 - *Look inside.* An id's version, its variant, and a v7 id's timestamp.
-- *Compare and hash.* =uuid=?=, =uuid<?=, and =uuid-hash= for hashtables. The
-  nil and max ids.
+- *Compare and hash.* =uuid=?=, =uuid<?=, =uuid-hash= for hashtables, and a
+  keyed hash for tables of ids that others send you. The nil and max ids.
 - *Plain R6RS.* Tested on Chez Scheme and Guile. Only ~(unique-id system)~
   needs more: SRFI-19 for the clock, and ~/dev/urandom~.
 
-Nothing is released yet. ~(unique-id)~ and ~(unique-id generator)~ are written;
-~(unique-id system)~ is not yet. The names below may change in any release
-before 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
+Nothing is released yet. The names below may change in any release before
+1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 
 ** Quick start
 
@@ -45,6 +44,9 @@ before 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 
 (define nodes (make-hashtable uuid-hash uuid=?))
 (hashtable-set! nodes id 'root)
+
+;; ids that clients send: a hash with a secret key
+(define seen (make-hashtable (make-system-uuid-hash) uuid=?))
 #+end_src
 
 An id is a record. Compare ids with =uuid=?=, not =equal?=, which Schemes
@@ -72,8 +74,9 @@ answer differently for records.
   =#f= for every variant but =rfc9562=.
 - A procedure given the wrong kind of argument raises an assertion violation
   that names it.
-- =uuid-hash= has no secret key, so anyone can make ids that share a hash. Do
-  not key a hashtable with it by ids a client sends.
+- =uuid-hash= has no secret key, so anyone can make ids that share a hash. For
+  a hashtable keyed by ids a client sends, use =(make-uuid-hash key)=, with 8
+  secret bytes, or =(make-system-uuid-hash)=, which draws them for you.
 
 A generator, from a clock and a source of random bytes that you give it:
 
@@ -95,6 +98,24 @@ A generator, from a clock and a source of random bytes that you give it:
   generator: the next id takes the clock's time, and sorts below the last one.
 - The clock and the random source must not call their own generator.
 
+~(unique-id system)~ supplies the clock and the random bytes:
+
+#+begin_src scheme
+(import (rnrs) (unique-id) (unique-id generator) (unique-id system))
+
+(system-clock)                  ; => Unix milliseconds, from SRFI-19's time-utc
+(system-entropy 16)             ; => 16 bytes from /dev/urandom
+(make-system-uuid-generator)    ; a new generator over the two
+(make-system-uuid-hash)         ; a new keyed hash, its key from /dev/urandom
+#+end_src
+
+- Every call to =system-entropy= that reads opens ~/dev/urandom~ afresh, so a
+  forked process never repeats its parent's random bytes.
+- Each generator and each hash is new. Give each thread its own generator: one
+  generator is not safe to share.
+- A keyed hash that is given something other than an id raises an assertion
+  violation that names =make-uuid-hash=.
+
 Three libraries:
 
 - ~(unique-id)~ :: ids themselves. No clock, no randomness: you pass in every
@@ -102,7 +123,7 @@ Three libraries:
 - ~(unique-id generator)~ :: makes ids from a clock and a source of random
   bytes that you give it.
 - ~(unique-id system)~ :: the system's clock and ~/dev/urandom~, and a
-  generator made of them.
+  generator and a keyed hash made of them.
 
 ** Build and test
 
@@ -131,7 +152,9 @@ make test         # the checks, then every suite on Chez and on Guile
 The formats, and the test vectors the suites check, are from [[https://www.rfc-editor.org/rfc/rfc9562][RFC 9562]],
 /Universally Unique IDentifiers (UUIDs)/, by K. Davis, B. Peabody and P. Leach.
 The generator's 10-second allowance for a clock that steps back follows
-[[https://github.com/LiosK/uuidv7][LiosK's uuidv7]] and its Rust port, [[https://docs.rs/uuid7][uuid7]].
+[[https://github.com/LiosK/uuidv7][LiosK's uuidv7]] and its Rust port, [[https://docs.rs/uuid7][uuid7]]. The keyed hash is HalfSipHash-2-4,
+from Jean-Philippe Aumasson and Daniel J. Bernstein's SipHash; its test vectors
+come from the [[https://github.com/veorq/SipHash][SipHash reference implementation]].
 
 ** License
 
