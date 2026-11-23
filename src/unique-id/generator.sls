@@ -1,5 +1,5 @@
 #!r6rs
-;;; (unique-id generator): version 4 and version 7 ids from a clock and an
+;;; (unique-id generator): Version 4 and version 7 ids from a clock and an
 ;;; entropy source, whose version 7 ids increase while the clock stays within
 ;;; 10 seconds of the last one.
 ;;;
@@ -88,7 +88,7 @@
   ;; it takes the last millisecond plus 1, reseeded from (ENTROPY 10). The
   ;; id's last 8 bytes are ENTROPY's. An assertion violation when G is not a
   ;; generator, when CLOCK does not answer an exact integer from 0 to below
-  ;; 2^48, or when ENTROPY does not answer the bytes asked. An `error' when the
+  ;; 2^48, or when ENTROPY does not answer the bytes asked. An `error` when the
   ;; counter is full at millisecond 2^48 - 1. A call that raises leaves G as it
   ;; was. CLOCK and ENTROPY must not call G: its state is read before they
   ;; answer.

@@ -61,6 +61,9 @@
   `/dev/urandom`: Linux and macOS. The build and the tests need a POSIX shell and GNU
   make: Linux and macOS, on amd64 and arm64.
 * **DO NOT** set up macOS CI runners: Linux only!
+* CI's `linux` jobs build Chez 10.4.1 and run `make test`. Its `docs` job runs Ubuntu's
+  own Chez 9.5.8 and `cmark-gfm`, for `make check-site` and `make site` alone: the site
+  is development tooling, not the library (ADR-0009).
 
 ### Signatures in comments
 
@@ -97,6 +100,14 @@
 * An exported macro, if one is ever added, documents its grammar and what it expands to
   instead.
 * A signature describes the code as it is. Change it in the same commit as the code.
+* **An export's comment is the API reference.** `make reference` writes
+  `docs/reference.md` from each export's signature and the first paragraph after it,
+  and each library's header comment less its export table (ADR-0009). So that
+  paragraph is for a user. Notes for whoever changes the code go in a later paragraph,
+  after a line that is `;;` alone, and stay out of the page. A definition must start a
+  line, `(define (NAME` or `(define NAME`, with its comment directly above.
+* **After changing a comment in `src/`, run `make reference`**: `make test` fails while
+  `docs/reference.md` is out of date.
 
 ### Dependencies
 
@@ -114,6 +125,12 @@
   (ADR-0003). There is no development container.
 * The package will be published on Akku. `Akku.manifest` names chez-srfi, from the
   version built from `SRFI_PIN` up (ADR-0008).
+* The docs site needs chez-cmark-gfm, a dev dependency that `Akku.lock` pins at 2.0.0:
+  `make site-deps` fetches it once into `build/akku`. It loads the system's
+  `libcmark-gfm` (`apt install cmark-gfm`, `brew install cmark-gfm`), or the core and
+  extensions libraries `CHEZ_CMARK_GFM_LIBS` names, two absolute paths joined by `:`.
+  `make test` needs none of it. `Akku.lock` also pins a chez-srfi newer than
+  `SRFI_PIN`, which nothing uses (ADR-0009).
 
 ### Layout, process & libraries
 
@@ -124,7 +141,13 @@
   Chez's own procedures, through `(only (chezscheme) ...)`. It also holds the fork
   suite, `tools/test-system-fork.sps`, which no plain R6RS suite could be: it runs
   `tools/fork-probe.sps` as a child program, with `src/` on the child's path alone
-  (ADR-0008).
+  (ADR-0008). And it holds the reference generator, `(unique-id-reference)` and
+  `tools/reference.sps`, with its suite and fixtures (ADR-0009).
+* `docs/` holds the user pages: Home (`README.md`), Getting started, Quickstart, the
+  guides, and `reference.md`, which `make reference` writes and nobody edits by hand.
+  `site/` renders them into `build/site/` (`make site`), on Chez alone; its tests are
+  under `site/tests/`, which `make check-site` runs, not `make test`. `site/pages.sls`
+  lists the pages in order: a new page goes there too (ADR-0009).
 * Plans live in `/.plans`, decision records in `/.plans/decisions`.
 * The ledger is `/.plans/progress.md`: where the project stands, the next slice, and a
   close-out for each merged slice. `/.plans/global-constraints.md` holds the decision
@@ -136,7 +159,10 @@
   the code. History belongs in `/.plans`, the ledger, `CHANGELOG.md` and git.
 * Add entries to `CHANGELOG.md` for each release.
 * `/docs` is for user facing documentation only.
-* Documentation should be very concise, focused, to the point, ELI5 style.
+* Documentation should be very concise, focused, to the point, ELI5 style. A guide's
+  example runs as a program on Chez and on Guile, and shows what both print; a link
+  goes to a page, a heading on the same page, or a library section of the reference.
+  `make check-site` fails on a link that dangles.
 * `Makefile` should have a `help` command which lists all of its commands;
   `make check-help` holds it to `.PHONY`.
 * Libraries are R6RS `.sls`; libraries and programs contain their own code — no shared
@@ -149,7 +175,8 @@
 * A test is not finished when it passes. It is finished when you have watched it fail.
 * Prefer a check to a comment.
 * **Do not** write tests that rely on reading code comments: a test asserts what the code
-  does, never what a comment says.
+  does, never what a comment says. The one exception is the reference suite, which
+  holds `docs/reference.md` to what the comments in `src/` generate (ADR-0009).
 * **Test vectors come from RFC 9562's own text**, never from memory. Name the section a
   vector comes from in its test's name.
 * **A property test draws its inputs from a seeded generator** written in the suite, so a
@@ -185,11 +212,11 @@
 * **Never compare ids with `equal?` or `test-equal`**: `equal?` on records answers
   differently on the two lanes. Compare `uuid->string` or `uuid->bytevector`, or assert
   `uuid=?`.
-* Every `tests/test-*.sps` and `tools/test-*.sps` must end with `(exit
-  (suite-exit-status runner))`: SRFI-64 sets no exit status. Anything after that line
-  never runs, and `make check-suites` checks it is there. It reads suites as data, so a
-  quoted exit form anywhere before the last line counts as an early exit: build such a
-  list with `list`.
+* Every `tests/test-*.sps` and `tools/test-*.sps`, and the site's SRFI-64 suites, must
+  end with `(exit (suite-exit-status runner))`: SRFI-64 sets no exit status. Anything
+  after that line never runs, and `make check-suites` checks it is there. It reads
+  suites as data, so a quoted exit form anywhere before the last line counts as an
+  early exit: build such a list with `list`.
 * An exit status is taken modulo 256, so `(exit 256)` exits 0. Exit with 0 or 1, never a
   count.
 * A suite cannot vouch for the verdict it exits through. A suite that tests

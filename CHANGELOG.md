@@ -21,3 +21,6 @@ release before 1.0.
   bytes from `/dev/urandom`, opened afresh by every call that reads;
   `make-system-uuid-generator`;
   `make-system-uuid-hash`, keyed from `/dev/urandom`.
+- `docs/`: guides to ids, generators, the system library, hash tables and errors, a
+  getting-started page, a quickstart, and an API reference generated from the
+  signature comments in `src/`. `make site` renders them as HTML.

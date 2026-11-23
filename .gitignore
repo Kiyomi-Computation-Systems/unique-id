@@ -5,6 +5,9 @@
 *.so
 *.wpo
 
+# what `akku install` writes; make site-deps uses its .akku/lib when present
+/.akku/
+
 # plugin scratch, not the ledger (AGENTS.md)
 /.superpowers/
 

@@ -130,7 +130,7 @@ TOOL_RUN := $(CHEZ) --libdirs $(TOOL_LIBDIRS) --program
 
 # One physical line: check-help reads it with awk, and fails if it ends in a
 # backslash.
-.PHONY: help check-help submodules check-pins check-chez check-guile deps dev dev-guile run test test-chez test-guile test-tools check-suites check-imports check-tests clean
+.PHONY: help check-help submodules check-pins check-chez check-guile deps dev dev-guile run test test-chez test-guile test-tools check-suites check-imports check-tests reference site-deps site check-site clean
 
 .DEFAULT_GOAL := help
 
@@ -256,12 +256,12 @@ test-guile: check-guile ## Run tests/test-*.sps on Guile; fail if one fails or h
 test-tools: deps ## Run tools/test-*.sps, the audits' own suites and the fork suite, on Chez
 	@$(call lane,tools,$(TOOL_RUN),$(TOOL_SUITES),$(CURDIR))
 
-# Reads every suite of every lane as data and fails unless each one's last
-# datum is the shared exit form and no datum before it holds an exit form
-# but (exit 1), naming each suite that breaks either rule
-# (tools/check-suites.sps).
-check-suites: deps ## Fail unless every tests/test-*.sps and tools/test-*.sps ends with the shared exit form
-	@$(CHEZ) --libdirs $(TOOL_LIBDIRS) --program tools/check-suites.sps $(SUITES) $(TOOL_SUITES)
+# Reads every suite of every lane, and the site's two suites, as data and
+# fails unless each one's last datum is the shared exit form and no datum
+# before it holds an exit form but (exit 1), naming each suite that breaks
+# either rule (tools/check-suites.sps).
+check-suites: deps ## Fail unless every tests/test-*.sps, tools/test-*.sps and site suite ends with the shared exit form
+	@$(CHEZ) --libdirs $(TOOL_LIBDIRS) --program tools/check-suites.sps $(SUITES) $(TOOL_SUITES) $(SITE_SUITES)
 
 # Reads every file under src/ and fails unless each is a plain R6RS library:
 # named <name>.sls at its library name's path, first line #!r6rs and no #!
@@ -280,6 +280,55 @@ check-imports: deps ## Fail unless every file under src/ is a plain R6RS library
 # (tools/check-tests.sps).
 check-tests: deps ## Fail unless every file under tests/ is plain R6RS, importing only (rnrs ...), (srfi :64), (srfi :19), the library and tests/' own
 	@$(CHEZ) --libdirs $(TOOL_LIBDIRS) --program tools/check-tests.sps tests src
+
+# --- the docs -----------------------------------------------------------------
+# docs/reference.md is written from the signature comments in src/ by
+# tools/reference.sps, on the tools lane's path, through a temporary file so
+# that a failure leaves the old page. tools/test-unique-id-reference.sps fails
+# make test while the page is stale: run this after changing a comment in src/.
+reference: deps ## Write docs/reference.md from the signature comments in src/
+	@$(TOOL_RUN) tools/reference.sps src tools/reference-head.md > $(BUILD_DIR)/reference.md.tmp
+	@mv $(BUILD_DIR)/reference.md.tmp docs/reference.md
+	@echo "reference: wrote docs/reference.md"
+
+# docs/*.md render into build/site/ through chez-cmark-gfm, a development-only
+# dependency: src/ stays plain R6RS, and make test needs no Markdown parser.
+# An `akku install` tree wins when present; otherwise scripts/fetch-akku-lock
+# downloads the archive Akku.lock pins, checks its sha256 and unpacks it under
+# build/akku. chez-cmark-gfm loads the system's libcmark-gfm, or the pair
+# CHEZ_CMARK_GFM_LIBS names.
+SITE_CMARK := $(if $(wildcard .akku/lib/cmark/gfm.sls),.akku/lib,$(BUILD_DIR)/akku/chez-cmark-gfm/src)
+SITE_LIBDIRS := .:$(SITE_CMARK)
+export SITE_LIBDIRS
+SITE_REF ?= main
+SITE_SUITES := $(wildcard site/tests/site-unit.sps site/tests/site-render-unit.sps \
+                          site/tests/site-check-fixtures.sps)
+
+site-deps: ## (network, once) Get chez-cmark-gfm as Akku.lock pins it
+	@if [ -f .akku/lib/cmark/gfm.sls ]; then \
+	  echo "site-deps: using .akku/lib (akku install)"; \
+	else \
+	  AKKU_DEST=$(BUILD_DIR)/akku sh scripts/fetch-akku-lock chez-cmark-gfm; \
+	fi
+
+site: site-deps check-chez ## Render docs/ into build/site/; SITE_REF=<tag> pins repository links
+	@mkdir -p $(BUILD_DIR)/site
+	@SITE_REF="$(SITE_REF)" SITE_OUT=$(BUILD_DIR)/site \
+	  $(CHEZ) --libdirs $(SITE_LIBDIRS) --program build-site.sps
+	@cp site/style.css $(BUILD_DIR)/site/style.css
+	@echo "site: $(BUILD_DIR)/site ready (open $(BUILD_DIR)/site/index.html)"
+
+# The generator's pure parts run first, with no chez-cmark-gfm on the path;
+# then the rendering, with it; then site-check.sps on each fixture tree, which
+# it must pass or fail as the tree says; then the docs themselves, holding
+# every page, link and anchor. SITE_DOCS names another docs tree, as the
+# site's fixtures do. SITE_LIBDIRS is exported for the fixtures' suite, which
+# runs site-check.sps as a child.
+check-site: site-deps deps ## Test the site generator, then check every docs/ page, link and anchor
+	@$(CHEZ) --libdirs .:tests:$(SRFI_LIBS) --program site/tests/site-unit.sps
+	@$(CHEZ) --libdirs $(SITE_LIBDIRS):tests:$(SRFI_LIBS) --program site/tests/site-render-unit.sps
+	@$(CHEZ) --libdirs .:tests:$(SRFI_LIBS) --program site/tests/site-check-fixtures.sps
+	@SITE_REF="$(SITE_REF)" $(CHEZ) --libdirs $(SITE_LIBDIRS) --program site/tests/site-check.sps
 
 clean: ## Remove build/
 	rm -rf $(BUILD_DIR)

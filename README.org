@@ -26,6 +26,13 @@ UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
 Nothing is released yet. The names below may change in any release before
 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 
+** Documentation
+
+The guides and the API reference are in [[file:docs/README.md][docs/]]: start with
+[[file:docs/getting-started.md][Getting started]] and the [[file:docs/quickstart.md][Quickstart]], then read the guides to ids,
+generators, the system library, hash tables and errors. The
+[[file:docs/reference.md][API reference]] lists every export.
+
 ** Quick start
 
 #+begin_src scheme
@@ -145,7 +152,12 @@ make submodules   # clones chez-srfi at its pin
 make test         # the checks, then every suite on Chez and on Guile
 #+end_src
 
-~make help~ lists every target.
+~make help~ lists every target. ~make reference~ writes ~docs/reference.md~
+from the signature comments in ~src/~, and ~make test~ fails while it is out of
+date. ~make site~ renders ~docs/~ as HTML into ~build/site/~, and ~make
+check-site~ checks its every page, link and anchor; both need ~libcmark-gfm~
+(~apt install cmark-gfm~ or ~brew install cmark-gfm~) and fetch chez-cmark-gfm
+once.
 
 ** Credits
 
