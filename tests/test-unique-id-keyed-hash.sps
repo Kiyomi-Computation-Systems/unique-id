@@ -62,8 +62,9 @@
                           (string->number (substring text (* 2 i) (+ 2 (* 2 i))) 16)))))
 
 ;; make-lcg : Nat -> (-> Nat)
-;; A seeded generator. Each call steps state' = (1664525 * state + 1013904223) mod 2^32 and
-;; answers state' >> 24, an octet.
+;; A seeded generator. Each call steps
+;; state' = (1664525 * state + 1013904223) mod 2^32 and answers state' >> 24,
+;; an octet.
 (define (make-lcg seed)
   (let ((state seed))
     (lambda ()
@@ -254,8 +255,9 @@
             #f))
 
 ;; Flooding. The 1024 ids are built at run time from uuid-hash, in this one
-;; test's expression. This test leans on uuid-hash being linear under xor, and
-;; on the hash of nil-uuid being 0: if uuid-hash changes, this test changes with it.
+;; test's expression. The construction leans on uuid-hash being linear under
+;; xor, and on the hash of nil-uuid being 0: if uuid-hash changes, this test
+;; must change with it.
 ;; For each i below 10, the id with octet i = 1 and octets 13, 14 and 15 set to
 ;; the bytes of its uuid-hash s (s < 2^23) has uuid-hash 0. The ten are
 ;; linearly independent, and the A.6 id xor each subset of them is one of 1024

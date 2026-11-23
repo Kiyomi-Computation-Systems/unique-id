@@ -7,12 +7,13 @@
 ;;;   make-system-uuid-generator    a generator over the two
 ;;;   make-system-uuid-hash         a keyed hash under a fresh random key
 ;;;
-;;; Every call of system-entropy that reads opens its own unbuffered
-;;; /dev/urandom port, and closes it before it returns. A forked child reads again whatever its
-;;; parent's port had buffered, and a buffered port reads thousands of bytes
-;;; to answer 16; a port that outlived the call could be shared by two
-;;; threads. The clock reads SRFI-19's time-utc, which is the Unix time:
-;;; time-monotonic and time-tai run 37 seconds ahead of it.
+;;; Each call of system-entropy that reads opens its own /dev/urandom port
+;;; and closes it before it returns, so no port outlives a call: a forked
+;;; child never rereads bytes its parent's port had buffered, and no two
+;;; threads share a port. The port is unbuffered, because a buffered one
+;;; reads thousands of bytes to answer 16. The clock reads SRFI-19's
+;;; time-utc, which is the Unix time: time-monotonic and time-tai run 37
+;;; seconds ahead of it.
 ;;; Needs /dev/urandom: Linux and macOS. Plain R6RS, importing (rnrs),
 ;;; SRFI-19 and the two libraries of this package.
 (library (unique-id system)

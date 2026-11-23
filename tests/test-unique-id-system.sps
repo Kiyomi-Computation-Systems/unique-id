@@ -9,10 +9,11 @@
 ;;; (value ()) or (value 0) when no case failed, (value #t) or a list of #t
 ;;; when every case held, else what failed. Every call into the library runs
 ;;; under a guard inside a test's actual expression; the only calls outside a
-;;; guard are of this file's own helpers on fixed arguments. A guard tags what
-;;; happened: (value V), (violation WHO OK?) for an
-;;; assertion violation, (error WHO OK?) for an `error`, (raised X) for
-;;; anything else raised, (raised-condition) for any other condition. OK? is
+;;; guard are of this file's own helpers on fixed arguments.
+;;;
+;;; A guard tags what happened: (value V); (violation WHO OK?) for an
+;;; assertion violation; (error WHO OK?) for an `error`; (raised X) for
+;;; anything else raised; (raised-condition) for any other condition. OK? is
 ;;; #t when the one irritant is eqv? to the one expected. Ids are compared as
 ;;; text or with uuid=?, never with equal?.
 (import (rnrs)
@@ -67,7 +68,7 @@
 
 ;; attempt : (-> Any) -> Outcome
 ;; (value V) when THUNK answers V, else (raised E), whatever was raised. A
-;; many-case test runs under it, so a stub that raises fails it.
+;; many-case test runs under it, so a raise inside it fails the test.
 (define (attempt thunk)
   (guard (e (#t (list 'raised e)))
     (list 'value (norm (thunk)))))

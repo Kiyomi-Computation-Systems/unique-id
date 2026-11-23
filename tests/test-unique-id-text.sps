@@ -153,7 +153,8 @@
         (else (+ k 4))))
 
 ;; failures-of : (Listof Any) (Any -> Any) -> (Listof Any)
-;; The non-#f answers of CHECK over ITEMS, in order. CHECK answers #f for a pass.
+;; The non-#f answers of CHECK over ITEMS, in order. CHECK answers #f for a
+;; pass.
 (define (failures-of items check)
   (let loop ((xs items) (acc '()))
     (if (null? xs)

@@ -12,8 +12,11 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to; later answers are recorded there too.
-- **Next: none planned.** The brief publishes on Akku "not at once", so when is the
-  owner's call. The items under **Open** are the known work.
+- **Preparing a release.** On 2026-11-23 the owner started preparing for an eventual
+  release. The first step, a sweep of the code comments, is merged, squashed from
+  [PR #5](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/5); its
+  close-out is below. When to publish on Akku is still the owner's call: the brief
+  says "not at once". The items under **Open** are the known work.
 
 ## Slices
 
@@ -55,6 +58,32 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   Nothing has run on an Intel Mac.
 
 ## Close-outs
+
+### The comment sweep: PR #5, 2026-11-23
+
+- **The owner's request:** sweep every code comment, in the tests and the source, of
+  milestones and ADRs, unless a design reason needs the link, and focus them on what
+  a developer needs.
+- **What merged:**
+  - **Nothing cited an ADR, a slice, a plan or a date.** AGENTS.md's comment rule had
+    held, so no ADR link needed keeping either.
+  - **Process talk, reworded:**
+    - the fork suite's "Expected survivor" paragraph and its "mutation run" wording;
+    - "stub" in the system suite;
+    - the sibling projects in the Makefile's pin comment;
+    - "a reviewed change" in `build-chez.sh`.
+  - **Clearer:** the system library's header now gives its port rule, then the
+    reasons. The monotonic suite's header is now a list. Ragged and over-long prose
+    is rewrapped. `(unique-id-checks)` now names all three of its programs.
+  - **AGENTS.md:** the comment rule now names mutation runs, and says comments are for
+    a developer using or changing the code.
+- **How it was done:** by hand, with no subagents: about a dozen edits, fewer than
+  briefing agents would have taken.
+- **Verified:** `make test` on Chez 10.4.0 and Guile 3.0.11, and CI on amd64 and arm64.
+- **Caught in my own edit:** I first wrote that the system suite's `attempt` keeps a
+  raise from ending the suite. On chez-srfi and Guile 3.0.9, a raise in a test's
+  actual expression becomes `#f` instead. The comment now says only that a raise
+  inside it fails the test.
 
 ### Slice 3, the system and the keyed hash: PR #4, 2026-11-23
 
