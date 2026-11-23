@@ -79,6 +79,9 @@ provisional. They bind until that record is accepted or amended.
   signature comment and the paragraph after it, and from each library's header. A
   suite in the tools lane fails `make test` while the page is stale: it is the one test
   that reads code comments (ADR-0009).
+- **`make test` runs every page's examples**, as one program per page on Chez and on
+  Guile, and compares each `;; =>` result: a page imports once, first, and defines
+  each name once (ADR-0010).
 - **`site/` renders `docs/` into a static site** through chez-cmark-gfm, a dev
   dependency pinned in `Akku.lock`. `make check-site`, not `make test`, runs its tests
   and fails on a dangling page, link, anchor or `../` link. The package installs `src/`

@@ -54,19 +54,16 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **On CI, no lane catches a test that expects `#f` from a raise**: chez-srfi and Guile
   3.0.9 both pass it. AGENTS.md forbids such tests. Only the host's Guile 3.0.11 catches
   one (ADR-0003).
-- **Nothing checks that the Guile lane searches `src/` before `tests/`.** The Makefile's
-  order was wrong for two slices, and a builder found it, not a check. A tools test that
-  plants a shadow library and asserts it loses would hold it.
-- **Two `run-check` behaviours are untested**: that it runs `$CHEZ` rather than whatever
-  `scheme` is on `PATH`, and that the child's stdin is `/dev/null`.
-- **Nothing runs the guides' examples automatically.** Every example in `docs/` was run
-  by hand on Chez and Guile, and a fixer's throwaway script extracted the code blocks
-  and compared each `;; =>` result. A `make check-docs` built that way would catch a
-  page that the library's behaviour leaves wrong.
+- **No check holds `system-entropy`'s unbuffered port.** A buffered port, closed at
+  every call, passes every suite on both Schemes and the fork suite. It costs speed
+  alone: a buffered port reads thousands of bytes to answer 16.
 - **macOS has run on arm64 alone.** On 2026-11-23, `make test` on slice 3's branch
   passed every lane, the fork suite among them, on macOS 26.7.1 on arm64. It ran with
   Apple's GNU make 3.81, Homebrew's Chez 10.4.1, found as `chez`, and Guile 3.0.11.
   Nothing has run on an Intel Mac.
+- **Akku.** The package is not published. Akku 1.1.0 installed it into a clean project
+  on 2026-11-23, and a program using all three libraries ran on Chez and on Guile;
+  `akku publish` signs with the owner's key.
 
 ## Close-outs
 

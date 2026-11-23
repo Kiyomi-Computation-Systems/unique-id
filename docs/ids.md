@@ -11,8 +11,10 @@ You write it as 36 characters.
 ;; => "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
 ```
 
-An id is a Scheme value of its own, not a string. To make fresh ids, see
-[Generators](generators.md) and [The system library](system.md).
+An id is a Scheme value of its own, not a string. Printed with `write` or
+`display`, it looks different on each Scheme and does not read back as an id:
+show it with `uuid->string`. To make fresh ids, see [Generators](generators.md) and
+[The system library](system.md).
 
 ## Which version
 
@@ -84,7 +86,9 @@ bytes come from outside, check `(= (bytevector-length bytes) 16)` first.
 
 `uuid-version` is 4 or 7 here. `uuid-variant` is the layout: `rfc9562`, else
 `ncs`, `microsoft` or `future`. `uuid-v7-timestamp` is the Unix time in
-milliseconds the id was made at.
+milliseconds the id was made at, or up to 10 seconds later: a generator keeps a
+later time when its clock steps back, or when it makes thousands of ids in one
+millisecond (see [Generators](generators.md)).
 
 Both answer `#f` when they have nothing to say. A version exists only for the
 `rfc9562` layout, and a timestamp only for a v7 id of that layout:

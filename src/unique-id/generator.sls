@@ -90,8 +90,9 @@
   ;; generator, when CLOCK does not answer an exact integer from 0 to below
   ;; 2^48, or when ENTROPY does not answer the bytes asked. An `error` when the
   ;; counter is full at millisecond 2^48 - 1. A call that raises leaves G as it
-  ;; was. CLOCK and ENTROPY must not call G: its state is read before they
-  ;; answer.
+  ;; was. CLOCK and ENTROPY must not call G: G's state is read before ENTROPY
+  ;; is called, so an id ENTROPY made through G has its millisecond and
+  ;; counter repeated by the id G then answers, which may sort below it.
   (define (generate-v7 g)
     (check-generator 'generate-v7 g)
     (let ((now ((generator-clock g))))

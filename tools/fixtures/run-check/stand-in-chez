@@ -1,0 +1,9 @@
+#!/bin/sh
+# Stands in for $CHEZ: writes a fixed line and its arguments, one to a line,
+# to stdout, then copies its stdin to stdout, and writes a line to stderr.
+echo "stand-in chez"
+for arg in "$@"; do
+  printf '%s\n' "$arg"
+done
+cat
+echo "stand-in stderr" >&2

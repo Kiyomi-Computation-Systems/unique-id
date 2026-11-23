@@ -64,3 +64,6 @@ Those comments are the API's contract, and the suites test what they say.
 - The site needs `libcmark-gfm` and one network fetch; `make test` needs neither.
 - Nothing runs the guides' examples automatically. The writers and the review ran them
   by hand; a change to the library's behaviour can leave a guide wrong.
+
+  **Amended 2026-11-23, by ADR-0010:** `make test` now runs each page's examples as a
+  program on Chez and on Guile, and compares every `;; =>` result.

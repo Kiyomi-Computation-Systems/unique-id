@@ -142,7 +142,8 @@
   suite, `tools/test-system-fork.sps`, which no plain R6RS suite could be: it runs
   `tools/fork-probe.sps` as a child program, with `src/` on the child's path alone
   (ADR-0008). And it holds the reference generator, `(unique-id-reference)` and
-  `tools/reference.sps`, with its suite and fixtures (ADR-0009).
+  `tools/reference.sps`, and the docs' example checker, `(unique-id-doc-examples)` and
+  `tools/doc-examples.sps`, each with its suite and fixtures (ADR-0009, ADR-0010).
 * `docs/` holds the user pages: Home (`README.md`), Getting started, Quickstart, the
   guides, and `reference.md`, which `make reference` writes and nobody edits by hand.
   `site/` renders them into `build/site/` (`make site`), on Chez alone; its tests are
@@ -163,6 +164,16 @@
   example runs as a program on Chez and on Guile, and shows what both print; a link
   goes to a page, a heading on the same page, or a library section of the reference.
   `make check-site` fails on a link that dangles.
+* **`make check-docs`, in `make test`, runs each page's examples** as one program on
+  Chez and on Guile, and compares every `;; =>` result with what `write` writes. So:
+  * a page's ` ```scheme ` blocks, each opened by exactly ` ```scheme ` at column 0,
+    are in order one program: its one `import` comes first, it defines each name
+    once, and it never mentions `exit`;
+  * a result follows its form, on the form's line or starting a later line with only
+    blank lines between, and goes on over lines of `;;` and two or more spaces; any
+    other `;; =>` is refused;
+  * a random result is `;; => e.g. VALUE`, which is checked for its shape alone;
+  * a `;; =>` never follows a definition (ADR-0010).
 * `Makefile` should have a `help` command which lists all of its commands;
   `make check-help` holds it to `.PHONY`.
 * Libraries are R6RS `.sls`; libraries and programs contain their own code — no shared
@@ -241,7 +252,9 @@
   through `make`, or with `GUILE_ENV` and `GUILE_FLAGS` from the Makefile: they keep
   `GUILE_LOAD_PATH` and the user's compiled-file cache out.
 * Guile searches `-L` directories in the order given, the first winning, as Chez does
-  `--libdirs`. To test a stand-in library, put its directory first on both.
+  `--libdirs`. To test a stand-in library, put its directory first on both. `make
+  check-lane-order`, in `make test`, fails unless both lanes find `src/` before
+  `tests/`: build a lane's path with `chez_libdirs` or `guile_flags`, which it checks.
 * Guile 3.0.9's SRFI-64 writes `SUITE-NAME.log` to the directory it runs in, so the
   Guile lane runs from `build/guile`, and gives each suite its absolute path.
 * On Guile, a suite's top level also sees Guile's own core bindings, `string-map` for

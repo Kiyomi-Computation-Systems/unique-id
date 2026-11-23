@@ -10,6 +10,9 @@
 #   tools  tools/test-*.sps, the audits' own suites and the fork suite, on
 #          Chez alone
 #
+# Two more lanes, docs-chez and docs-guile, run the programs make check-docs
+# writes from docs/.
+#
 # chez-srfi is a submodule pinned under vendor/. `make submodules` clones it,
 # once, where the network is; `make check-pins` holds it at SRFI_PIN; `make
 # deps` links it into build/ and never fetches.
@@ -51,7 +54,9 @@ SRFI_PIN := 7879b527f267f067416552fb989135ad1b4ea436
 BUILD_DIR := build
 SRFI_LIBS := $(BUILD_DIR)/scheme-libs
 LIBDIRS := src:$(SRFI_LIBS)
-CHEZ_LIBDIRS := src:tests:$(SRFI_LIBS)
+# chez_libdirs DIR: the Chez lane's library path, with DIR where tests/ is.
+chez_libdirs = src:$(1):$(SRFI_LIBS)
+CHEZ_LIBDIRS := $(call chez_libdirs,tests)
 TOOL_LIBDIRS := tools:tests:$(SRFI_LIBS)
 export TOOL_LIBDIRS
 
@@ -68,8 +73,12 @@ export TOOL_LIBDIRS
 # export one name, which Chez refuses outright.
 GUILE_ENV := env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH \
              XDG_CACHE_HOME=$(abspath $(BUILD_DIR))/guile-cache
-GUILE_FLAGS := --r6rs --no-auto-compile -L $(abspath src) -L $(abspath tests) \
-               -l $(abspath scripts/guile-prelude.scm)
+# guile_flags DIR: the Guile lane's flags, with DIR where tests/ is.
+# make check-lane-order runs both lanes' paths with a stand-in (unique-id) in
+# DIR, and fails unless the one in src/ wins.
+guile_flags = --r6rs --no-auto-compile -L $(abspath src) -L $(abspath $(1)) \
+              -l $(abspath scripts/guile-prelude.scm)
+GUILE_FLAGS := $(call guile_flags,tests)
 
 # Every suite, in one order everywhere: make 3.82 to 4.2 leave $(wildcard)
 # unsorted.
@@ -128,9 +137,30 @@ GUILE_RUN := $(GUILE_ENV) $(GUILE) $(GUILE_FLAGS)
 GUILE_DIR := $(abspath $(BUILD_DIR))/guile
 TOOL_RUN := $(CHEZ) --libdirs $(TOOL_LIBDIRS) --program
 
+# The programs make check-docs runs: tools/doc-examples.sps writes one per page
+# of docs/ into DOC_DIR, and each lane runs them as it runs a suite. Chez runs
+# them on src/ and chez-srfi; Guile on src/ alone, with its own SRFIs.
+DOC_DIR := $(BUILD_DIR)/doc-examples
+DOCS_CHEZ_RUN := $(CHEZ) --libdirs $(LIBDIRS) --program
+DOCS_GUILE_RUN := $(GUILE_ENV) $(GUILE) --r6rs --no-auto-compile -L $(abspath src) \
+                  -l $(abspath scripts/guile-prelude.scm)
+
+# docs_check: one shell command, in a subshell, that writes the programs, then
+# runs them on the docs-chez and docs-guile lanes. The list of programs is read
+# after the generator ran, so it is a shell variable, not a make wildcard. Every
+# step runs, and it exits 1 if any failed, a generator that refused a page
+# included: that page's program writes its complaints and exits 1, so each lane
+# names it as failed too.
+docs_check = ( status=0; \
+  $(TOOL_RUN) tools/doc-examples.sps docs $(DOC_DIR) || status=1; \
+  progs=$$(LC_ALL=C ls $(DOC_DIR)/*.sps 2>/dev/null); \
+  $(call lane,docs-chez,$(DOCS_CHEZ_RUN),$$progs,$(CURDIR)) || status=1; \
+  $(call lane,docs-guile,$(DOCS_GUILE_RUN),$$progs,$(GUILE_DIR)) || status=1; \
+  exit $$status )
+
 # One physical line: check-help reads it with awk, and fails if it ends in a
 # backslash.
-.PHONY: help check-help submodules check-pins check-chez check-guile deps dev dev-guile run test test-chez test-guile test-tools check-suites check-imports check-tests reference site-deps site check-site clean
+.PHONY: help check-help submodules check-pins check-chez check-guile deps dev dev-guile run test test-chez test-guile test-tools check-suites check-imports check-tests check-lane-order check-docs reference site-deps site check-site clean
 
 .DEFAULT_GOAL := help
 
@@ -237,13 +267,16 @@ run: deps ## Run a program on Chez with src/ and chez-srfi on the library path: 
 # The checks come first: check-chez (through deps), check-guile, check-help,
 # check-suites, check-tests and, once src/ exists, check-imports, so the
 # first library under src/ is audited without anyone remembering to. Then
-# every lane runs, even after one fails, so a run names every failure; it
-# fails if any lane did.
-test: deps check-guile check-help check-suites check-tests $(if $(wildcard src),check-imports) ## Run the checks, then every lane: tools, chez and guile; fail if any suite fails or hangs
+# every lane runs, even after one fails, so a run names every failure: tools,
+# chez and guile, then the docs lanes (docs-chez and docs-guile, as check-docs
+# runs them); it fails if any lane did. check-lane-order is one of the checks
+# that come first.
+test: deps check-guile check-help check-suites check-tests check-lane-order $(if $(wildcard src),check-imports) ## Run the checks, then every lane: tools, chez, guile, and the docs examples on docs-chez and docs-guile; fail if any fails or hangs
 	@status=0; failed=; \
 	$(call lane,tools,$(TOOL_RUN),$(TOOL_SUITES),$(CURDIR)) || { status=1; failed="$$failed tools"; }; \
 	$(call lane,chez,$(CHEZ_RUN),$(SUITES),$(CURDIR)) || { status=1; failed="$$failed chez"; }; \
 	$(call lane,guile,$(GUILE_RUN),$(SUITES),$(GUILE_DIR)) || { status=1; failed="$$failed guile"; }; \
+	$(call docs_check) || { status=1; failed="$$failed docs"; }; \
 	if [ $$status -eq 0 ]; then echo "test: every lane passed"; else echo "test: FAIL in$$failed" >&2; fi; \
 	exit $$status
 
@@ -280,6 +313,37 @@ check-imports: deps ## Fail unless every file under src/ is a plain R6RS library
 # (tools/check-tests.sps).
 check-tests: deps ## Fail unless every file under tests/ is plain R6RS, importing only (rnrs ...), (srfi :64), (srfi :19), the library and tests/' own
 	@$(CHEZ) --libdirs $(TOOL_LIBDIRS) --program tools/check-tests.sps tests src
+
+# Runs tools/fixtures/lane-order/probe.sps on each lane's path, built by
+# chez_libdirs and guile_flags with the stand-in (unique-id) under
+# LANE_SHADOW where tests/ is. The probe passes only where src/'s (unique-id)
+# wins. Each Scheme must also refuse the probe with the stand-in put first,
+# or the stand-in was never found and the check proves nothing.
+LANE_SHADOW := tools/fixtures/lane-order/shadow
+LANE_PROBE := tools/fixtures/lane-order/probe.sps
+check-lane-order: deps check-guile ## Fail unless both lanes find a library in src/ before one of the same name in tests/
+	@status=0; \
+	$(CHEZ) --libdirs $(call chez_libdirs,$(LANE_SHADOW)) --program $(LANE_PROBE) \
+	  </dev/null >/dev/null 2>&1 \
+	  || { echo "check-lane-order: the chez lane finds tests/ before src/" >&2; status=1; }; \
+	$(GUILE_ENV) $(GUILE) $(call guile_flags,$(LANE_SHADOW)) $(abspath $(LANE_PROBE)) \
+	  </dev/null >/dev/null 2>&1 \
+	  || { echo "check-lane-order: the guile lane finds tests/ before src/" >&2; status=1; }; \
+	if $(CHEZ) --libdirs $(LANE_SHADOW):$(call chez_libdirs,$(LANE_SHADOW)) \
+	     --program $(LANE_PROBE) </dev/null >/dev/null 2>&1; then \
+	  echo "check-lane-order: chez ran the probe with the stand-in first" >&2; status=1; \
+	fi; \
+	if $(GUILE_ENV) $(GUILE) -L $(abspath $(LANE_SHADOW)) $(call guile_flags,$(LANE_SHADOW)) \
+	     $(abspath $(LANE_PROBE)) </dev/null >/dev/null 2>&1; then \
+	  echo "check-lane-order: guile ran the probe with the stand-in first" >&2; status=1; \
+	fi; \
+	if [ $$status -eq 0 ]; then echo "check-lane-order: both lanes find src/ first"; fi; \
+	exit $$status
+
+# Runs every example in docs/ as a program on Chez and on Guile, and checks
+# each `;; =>` result (tools/doc-examples.sps, (unique-id-doc-examples)).
+check-docs: deps check-guile ## Fail unless every example in docs/ runs on Chez and on Guile and prints its `;; =>` result
+	@$(call docs_check)
 
 # --- the docs -----------------------------------------------------------------
 # docs/reference.md is written from the signature comments in src/ by

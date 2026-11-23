@@ -2,7 +2,7 @@
 
 A generator makes ids for you. It is a clock plus a source of random bytes, and
 you hand it both. It adds one promise: the v7 ids it makes increase, unless the
-clock falls more than 10 seconds behind.
+clock is more than 10 seconds behind the last id.
 
 Each example works after this import:
 
@@ -50,12 +50,12 @@ two ids made in the same millisecond would tie. So a generator also keeps a
 Here is a clock stuck at one millisecond, and entropy that is all `#xAB`:
 
 ```scheme
-(define g (make-uuid-generator (lambda () 1645557742000)
-                               (lambda (n) (make-bytevector n #xAB))))
+(define stuck (make-uuid-generator (lambda () 1645557742000)
+                                   (lambda (n) (make-bytevector n #xAB))))
 
-(uuid->string (generate-v7 g))   ;; => "017f22e2-79b0-73ab-abab-abababababab"
-(uuid->string (generate-v7 g))   ;; => "017f22e2-79b0-73ac-abab-abababababab"
-(uuid->string (generate-v7 g))   ;; => "017f22e2-79b0-73ad-abab-abababababab"
+(uuid->string (generate-v7 stuck))  ;; => "017f22e2-79b0-73ab-abab-abababababab"
+(uuid->string (generate-v7 stuck))  ;; => "017f22e2-79b0-73ac-abab-abababababab"
+(uuid->string (generate-v7 stuck))  ;; => "017f22e2-79b0-73ad-abab-abababababab"
 ```
 
 The time stayed put, so the counter went up by one: `3ab`, `3ac`, `3ad`. A
@@ -67,10 +67,10 @@ ahead and seeds a new counter. It runs ahead of the clock rather than let two
 ids tie:
 
 ```scheme
-(define g (make-uuid-generator (lambda () 1645557742000)
-                               (lambda (n) (make-bytevector n 0))))
+(define full (make-uuid-generator (lambda () 1645557742000)
+                                  (lambda (n) (make-bytevector n 0))))
 (define ids (make-vector 4097))
-(do ((i 0 (+ i 1))) ((= i 4097)) (vector-set! ids i (generate-v7 g)))
+(do ((i 0 (+ i 1))) ((= i 4097)) (vector-set! ids i (generate-v7 full)))
 
 ;; The counter starts at 0, so ids 0 to 4095 fill the millisecond.
 (uuid->string (vector-ref ids 4095))
@@ -89,7 +89,7 @@ generator copes in two ways, split at 10 seconds.
 - **Up to 10 seconds behind.** It keeps the last id's millisecond and counts
   on. The ids still increase.
 - **More than 10 seconds behind.** It believes the clock and starts over from
-  it. That id is smaller than the one before: the one time ids do not increase.
+  it. That id is smaller than the one before.
 
 ```scheme
 (define (scripted-clock times)   ; answers each time once, then the last
@@ -98,17 +98,31 @@ generator copes in two ways, split at 10 seconds.
       (when (pair? (cdr times)) (set! times (cdr times)))
       t)))
 
-(define g (make-uuid-generator
-           (scripted-clock '(1645557742000 1645557737000 1645557712000))
-           (lambda (n) (make-bytevector n 0))))
+(define back (make-uuid-generator
+              (scripted-clock '(1645557742000 1645557737000 1645557712000))
+              (lambda (n) (make-bytevector n 0))))
 
-(uuid->string (generate-v7 g))   ;; => "017f22e2-79b0-7000-8000-000000000000"
-(uuid->string (generate-v7 g))   ;; => "017f22e2-79b0-7001-8000-000000000000"
-(uuid->string (generate-v7 g))   ;; => "017f22e2-0480-7000-8000-000000000000"
+(uuid->string (generate-v7 back))  ;; => "017f22e2-79b0-7000-8000-000000000000"
+(uuid->string (generate-v7 back))  ;; => "017f22e2-79b0-7001-8000-000000000000"
+(uuid->string (generate-v7 back))  ;; => "017f22e2-0480-7000-8000-000000000000"
 ```
 
 The second call saw a clock 5 seconds behind and kept the old millisecond. The
 third saw one 30 behind, and the id went back.
+
+## Very many ids at once
+
+The last id can also get ahead of a clock that is fine. A full counter moves
+the next id a millisecond ahead, as above. A millisecond holds 2049 to 4096
+ids, depending on its seed: about 3072 when the entropy is random. Ask for more
+than that, millisecond after millisecond, and the ids run ahead of the clock. Once they are more than 10
+seconds ahead, the clock is more than 10 seconds behind the last id, so the
+next id starts over from it, and is smaller.
+
+That takes more than about 3 million ids a second, kept up. At 4 million a
+second the reset comes after about half a minute, and at 6 million after about
+10 seconds. A generator from `make-system-uuid-generator` opens `/dev/urandom`
+for every id, and stays far below that.
 
 ## Running out
 
