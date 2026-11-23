@@ -10,7 +10,8 @@
         (srfi :64)
         (unique-id-testing)
         (unique-id-checks)
-        (only (chezscheme) directory-list parameterize)
+        (only (chezscheme) directory-list foreign-entry? foreign-procedure getenv
+              load-shared-object parameterize putenv)
         ;; (rnrs)'s current-error-port takes no argument; Chez's is the
         ;; parameter behind it, which parameterize can rebind.
         (prefix (only (chezscheme) current-error-port) chez:))
@@ -77,6 +78,88 @@
            (ignored (run-check "tools/fixtures/programs/out-err-exit.sps" '()))
            (after (list-sort string<? (directory-list "build/run-check"))))
       (if (equal? before after) '(same) (list 'before before 'after after)))))
+
+;; --- run-check: $CHEZ and stdin ---------------------------------------------
+
+;; Chez 10 finds no "open", "dup" or "dup2" until libc is loaded;
+;; foreign-procedure looks each entry up where it is evaluated, so this comes
+;; first.
+(for-each (lambda (name)
+            (unless (foreign-entry? "dup2")
+              (guard (e (#t #f)) (load-shared-object name))))
+          '("libc.so.6" "libc.so" "libc.dylib"))
+
+;; open : String Integer -> Integer
+;; A new descriptor for the file at PATH opened with FLAGS, -1 on failure.
+(define c-open (foreign-procedure "open" (string int) int))
+
+;; dup : Integer -> Integer
+;; A new descriptor for the file descriptor FD, -1 on failure.
+(define c-dup (foreign-procedure "dup" (int) int))
+
+;; dup2 : Integer Integer -> Integer
+;; Makes descriptor NEW another name for OLD; answers NEW, -1 on failure.
+(define c-dup2 (foreign-procedure "dup2" (int int) int))
+
+;; close : Integer -> Integer
+;; Closes descriptor FD.
+(define c-close (foreign-procedure "close" (int) int))
+
+;; with-env : String String (-> Any) -> Any
+;; THUNK's answer, with environment variable NAME set to VALUE for the call
+;; and put back after, even when THUNK raises.
+(define (with-env name value thunk)
+  (let ((old (getenv name)))
+    (dynamic-wind
+      (lambda () (putenv name value))
+      thunk
+      (lambda () (putenv name (or old ""))))))
+
+;; with-stdin-file : String (-> Any) -> Any
+;; THUNK's answer, with descriptor 0 a read-only descriptor of the file at
+;; PATH for the call, and the original descriptor 0 put back after, even
+;; when THUNK raises.
+(define (with-stdin-file path thunk)
+  (let ((saved #f))
+    (dynamic-wind
+      (lambda ()
+        (let ((fd (c-open path 0)))
+          (when (< fd 0) (error 'with-stdin-file "cannot open" path))
+          (set! saved (c-dup 0))
+          (c-dup2 fd 0)
+          (c-close fd)))
+      thunk
+      (lambda ()
+        (when (and saved (>= saved 0))
+          (c-dup2 saved 0)
+          (c-close saved))))))
+
+(define stand-in "tools/fixtures/run-check/stand-in-chez")
+
+;; tool-libdirs : String
+;; TOOL_LIBDIRS, or "" when it is unset, so an expected value never raises:
+;; run-check then raises inside the test, which names it.
+(define tool-libdirs (or (getenv "TOOL_LIBDIRS") ""))
+
+(test-equal "run-check: runs $CHEZ, not the scheme on the path, with its libdirs, program and arguments"
+  (list 0
+        (string-append "stand-in chez\n--libdirs\n" tool-libdirs
+                       "\n--program\nsome/program.sps\nan arg\nb\n")
+        "stand-in stderr\n")
+  (guard (e (#t (list 'raised (describe e))))
+    (with-env "CHEZ" stand-in
+      (lambda () (run-check "some/program.sps" '("an arg" "b"))))))
+
+(test-equal "run-check: the child's stdin is /dev/null, though the suite's own holds bytes"
+  (list 0
+        (string-append "stand-in chez\n--libdirs\n" tool-libdirs
+                       "\n--program\nsome/program.sps\n")
+        "stand-in stderr\n")
+  (guard (e (#t (list 'raised (describe e))))
+    (with-env "CHEZ" stand-in
+      (lambda ()
+        (with-stdin-file "tools/fixtures/run-check/stdin-bytes.txt"
+          (lambda () (run-check "some/program.sps" '())))))))
 
 (test-end "unique-id-checks")
 

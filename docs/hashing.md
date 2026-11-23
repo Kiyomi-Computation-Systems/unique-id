@@ -24,7 +24,8 @@ Two separate ids with the same bytes find the same entry. Do not use
 
 `uuid-hash` answers a number below 2^23 from the id's 16 bytes. It is fast, and
 ids that differ in one byte get different hashes. Its numbers are the same on
-every Scheme.
+every Scheme, but a later release may change them, so never store them: store
+the ids, and hash again after you load.
 
 ```scheme
 (map uuid-hash
@@ -48,12 +49,12 @@ are 32-bit numbers (HalfSipHash-2-4).
 
 ```scheme
 (define key (u8-list->bytevector '(0 1 2 3 4 5 6 7)))
-(define hash (make-uuid-hash key))
+(define test-hash (make-uuid-hash key))
 
-(hash id)
+(test-hash id)
 ;; => 3416166685
 
-(define table (make-hashtable hash uuid=?))
+(define table (make-hashtable test-hash uuid=?))
 (hashtable-set! table id 'x)
 (hashtable-ref table id #f)
 ;; => x
@@ -71,9 +72,9 @@ A fixed key like this one is only for tests. For a real key, use random bytes.
 makes a new hash with a new key.
 
 ```scheme
-(define hash (make-system-uuid-hash))
+(define random-hash (make-system-uuid-hash))
 
-(hash id)
+(random-hash id)
 ;; => e.g. 2508975842
 ```
 
@@ -81,7 +82,7 @@ Run it again and you get another number. Within one hash, the same id always
 gets the same number.
 
 ```scheme
-(= (hash id) (hash id))
+(= (random-hash id) (random-hash id))
 ;; => #t
 ```
 

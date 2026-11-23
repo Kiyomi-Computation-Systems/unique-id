@@ -11,6 +11,10 @@ git clone https://github.com/Kiyomi-Computation-Systems/unique-id.git
 cd unique-id
 ```
 
+That is the latest code. For the 0.1.0 release, add `--branch v0.1.0` to
+`git clone`. Use git rather than a downloaded archive: `make submodules`, below,
+needs it.
+
 You need Chez Scheme (as `scheme` or `chez`), Guile 3 (as `guile` or
 `guile-3.0`), GNU make and GNU `timeout`. The Makefile finds the Schemes. On
 macOS, `brew install coreutils` gives you `gtimeout`.
@@ -75,7 +79,11 @@ scheme --libdirs /path/to/unique-id/src:/path/to/unique-id/build/scheme-libs \
 Use `chez` if that is your Chez's name. A program that imports only
 `(unique-id)` and `(unique-id generator)` needs `src/` alone.
 
-On Guile, `-L /path/to/unique-id/src` is enough: it has SRFI-19.
+On Guile, `src/` is enough, since Guile has SRFI-19. Keep `--r6rs`:
+
+```sh
+guile --r6rs -L /path/to/unique-id/src /path/to/your-program.sps
+```
 
 ## Use another R6RS implementation
 

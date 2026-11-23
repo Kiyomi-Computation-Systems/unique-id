@@ -16,20 +16,21 @@ UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
 - *Version 4 and version 7.* Make either from bits you supply, or from a
   generator.
 - *Ids that sort by time.* One generator's v7 ids increase: within one
-  millisecond, when the clock steps back by up to 10 seconds, and when the counter runs out.
+  millisecond, when the clock steps back by up to 10 seconds, and when the
+  counter runs out. A clock more than 10 seconds behind the last id resets it.
 - *Look inside.* An id's version, its variant, and a v7 id's timestamp.
 - *Compare and hash.* =uuid=?=, =uuid<?=, =uuid-hash= for hashtables, and a
   keyed hash for tables of ids that others send you. The nil and max ids.
 - *Plain R6RS.* Tested on Chez Scheme and Guile. Only ~(unique-id system)~
   needs more: SRFI-19 for the clock, and ~/dev/urandom~.
 
-Nothing is released yet. The names below may change in any release before
-1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
+The first release is 0.1.0. The names below may change in any release before
+1.0, and [[file:CHANGELOG.md][CHANGELOG.md]] says what each release has.
 
 ** Documentation
 
-The guides and the API reference are in [[file:docs/README.md][docs/]]: start with
-[[file:docs/getting-started.md][Getting started]] and the [[file:docs/quickstart.md][Quickstart]], then read the guides to ids,
+The guides and the API reference are on [[https://kiyomi-computation-systems.github.io/unique-id/][the docs site]], and in [[file:docs/README.md][docs/]]:
+start with [[file:docs/getting-started.md][Getting started]] and the [[file:docs/quickstart.md][Quickstart]], then read the guides to ids,
 generators, the system library, hash tables and errors. The
 [[file:docs/reference.md][API reference]] lists every export.
 
@@ -98,11 +99,12 @@ A generator, from a clock and a source of random bytes that you give it:
 
 - One generator's v7 ids increase: when the clock repeats, when it falls up
   to 10 seconds behind the last id, and when you ask for thousands in one
-  millisecond.
+  millisecond, which moves the ids ahead of the clock.
 - That order is one generator's alone. Ids from two generators, or from before
   a restart, may interleave.
-- A clock that falls more than 10 seconds behind the last id resets its
-  generator: the next id takes the clock's time, and sorts below the last one.
+- A clock more than 10 seconds behind the last id resets its generator: the
+  next id takes the clock's time, and sorts below the last one. The clock can
+  fall, or the ids can run that far ahead of it, at millions a second.
 - The clock and the random source must not call their own generator.
 
 ~(unique-id system)~ supplies the clock and the random bytes:
@@ -131,6 +133,19 @@ Three libraries:
   bytes that you give it.
 - ~(unique-id system)~ :: the system's clock and ~/dev/urandom~, and a
   generator and a keyed hash made of them.
+
+** Use it
+
+unique-id is three R6RS libraries under ~src/~. Clone a release, and put ~src/~
+on your Scheme's library path:
+
+#+begin_src sh
+git clone --branch v0.1.0 https://github.com/Kiyomi-Computation-Systems/unique-id.git
+#+end_src
+
+On Chez, ~(unique-id system)~ also needs SRFI-19, from [[https://github.com/arcfide/chez-srfi][chez-srfi]]: in the
+clone, ~make submodules deps~ puts it in ~build/scheme-libs~. Guile has its own.
+[[file:docs/getting-started.md][Getting started]] gives the commands for both Schemes.
 
 ** Build and test
 

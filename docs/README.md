@@ -28,8 +28,8 @@ small opaque value you make, print, read, compare and use as a hashtable key.
 
 The id is RFC 9562's own example. Its first 48 bits are a time, in
 milliseconds since 1970. A generator's version 7 ids increase, so each sorts
-after the last, unless the clock falls more than 10 seconds behind. See
-[Generators](generators.md).
+after the last, unless the clock is more than 10 seconds behind the last id.
+See [Generators](generators.md).
 
 ## Ideas to keep in mind
 
@@ -75,8 +75,9 @@ by hand, on arm64.
 
 ## Status
 
-Nothing is released on Akku yet. Use it from a checkout:
-[Getting started](getting-started.md) shows how.
+The first release is 0.1.0, the git tag `v0.1.0`. Its names may change in any
+release before 1.0. It is not on Akku yet: use it from a checkout, as
+[Getting started](getting-started.md) shows.
 
 ## Read next
 

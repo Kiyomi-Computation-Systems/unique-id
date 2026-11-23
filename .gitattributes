@@ -2,6 +2,7 @@
 # audit holds a library's whole first line to #!r6rs.
 *.sh       text eol=lf
 scripts/*  text eol=lf
+tools/fixtures/run-check/stand-in-chez  text eol=lf
 *.sls      text eol=lf
 *.sps      text eol=lf
 *.scm      text eol=lf
