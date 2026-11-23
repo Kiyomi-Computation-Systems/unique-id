@@ -48,6 +48,12 @@
   * Names R7RS has are not all R6RS: `bytevector`, `bytevector-append`,
     `read-bytevector` and `string-map` are not. Check the R6RS library before using
     one.
+  * `(rnrs)` leaves some R6RS names out: `string-set!` and `string-fill!` are in
+    `(rnrs mutable-strings)`, and `quotient`, `remainder` and `modulo` in `(rnrs r5rs)`.
+    Use `div` and `mod`.
+  * `number->string` in radix 16 answers upper case on Chez, lower case on Guile.
+  * A record type with a fixed `nongenerative` uid can be defined again by any program,
+    which then makes and opens such records. An id's record is generative.
 * The library runs wherever an R6RS Scheme does; `(unique-id system)` also needs
   `/dev/urandom`: Linux and macOS. The build and the tests need a POSIX shell and GNU
   make: Linux and macOS, on amd64 and arm64.
@@ -72,7 +78,8 @@
 
 * **The vocabulary**: `Uuid`, `Generator`, `Nat` (an exact nonnegative integer),
   `Integer`, `Boolean`, `String`, `Symbol`, `Char`, `Bytevector`, `Any`, and `Sexp` for
-  a datum as `read` answers it; `(U A B)` for either; `(Listof A)`, `(List A B)` and
+  a datum as `read` answers it; `Void` for what a procedure called for its effect
+  answers; `(U A B)` for either; `(Listof A)`, `(List A B)` and
   `(Pair A B)`; `(A B -> C)` for a procedure and `(-> A)` for one of no arguments;
   `(Values A B)` for several values. Name a test runner `Test-Runner` and a library
   name `Library-Name`. A file may name a type of its own, such as `Complaint`, when a

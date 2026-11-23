@@ -32,6 +32,12 @@ The owner chose a record, and an exported hash.
 4. **The package and its libraries are named `unique-id`**: the Akku name `uuid` is
    taken, and `uuid7` would mislead, since v4 is included.
 
+**Amended 2026-11-22**, measured on Guile 3.0.9 and 3.0.11: "no caller can change an id"
+holds within R6RS. A Guile program that imports `(guile)` reaches the record's field with
+`struct-ref`, and can change an id's octets or put a bytevector of another length there.
+Chez's `record-rtd` and `inspect/object` refuse an opaque record. Only code in the same
+process can do this, never data a client sends.
+
 ## Consequences
 
 - **A SQLite binding costs one call**: `uuid->bytevector` to store, `bytevector->uuid` to

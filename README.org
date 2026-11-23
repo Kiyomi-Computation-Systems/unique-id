@@ -23,9 +23,9 @@ UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
 - *Plain R6RS.* Tested on Chez Scheme and Guile. Only ~(unique-id system)~
   needs more: SRFI-19 for the clock, and ~/dev/urandom~.
 
-Nothing is released yet, and no library code exists: the build and the test
-harness are in place. The names below may change in any release before 1.0;
-[[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
+Nothing is released yet. ~(unique-id)~ is written; ~(unique-id generator)~ and
+~(unique-id system)~ are not yet. The names below may change in any release
+before 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 
 ** Quick start
 
@@ -49,6 +49,31 @@ harness are in place. The names below may change in any release before 1.0;
 
 An id is a record. Compare ids with =uuid=?=, not =equal?=, which Schemes
 answer differently for records.
+
+~(unique-id)~ alone, with the bits you choose:
+
+#+begin_src scheme
+(import (rnrs) (unique-id))
+
+(define id (string->uuid "017F22E2-79B0-7CC3-98C4-DC0C0C07398F"))
+(uuid->string id)        ; => "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+(uuid-variant id)        ; => rfc9562
+(uuid-v7-timestamp id)   ; => 1645557742000
+
+;; milliseconds, a 12-bit counter, 8 random bytes
+(make-uuid-v7 1645557742000 #xCC3 (make-bytevector 8 #x18))
+;; 16 random bytes
+(make-uuid-v4 (make-bytevector 16 #x91))
+#+end_src
+
+- =string->uuid= reads only the 36-character form. Any other string gives
+  =#f=; anything but a string raises.
+- A variant is =ncs=, =rfc9562=, =microsoft= or =future=. =uuid-version= is
+  =#f= for every variant but =rfc9562=.
+- A procedure given the wrong kind of argument raises an assertion violation
+  that names it.
+- =uuid-hash= has no secret key, so anyone can make ids that share a hash. Do
+  not key a hashtable with it by ids a client sends.
 
 Three libraries:
 
