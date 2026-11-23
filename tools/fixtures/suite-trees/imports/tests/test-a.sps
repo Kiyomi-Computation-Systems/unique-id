@@ -5,6 +5,5 @@
         (only (chezscheme) printf)
         (unique-id nope)
         (rnrs eval)
-        (unique-id-checks)
-        (srfi :19))
+        (unique-id-checks))
 (display 1)

@@ -15,3 +15,9 @@ release before 1.0.
 - `(unique-id generator)`: `make-uuid-generator` over a clock and an entropy source
   you give it; `generate-v4`; `generate-v7`, whose ids from one generator always
   increase, unless the clock falls more than 10 seconds behind, which resets it.
+- `(unique-id)`: `make-uuid-hash`, a keyed hash, HalfSipHash-2-4, for tables keyed by
+  ids that others send.
+- `(unique-id system)`: `system-clock`, the Unix time in milliseconds; `system-entropy`,
+  bytes from `/dev/urandom`, opened afresh by every call that reads;
+  `make-system-uuid-generator`;
+  `make-system-uuid-hash`, keyed from `/dev/urandom`.

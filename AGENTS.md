@@ -10,15 +10,16 @@
   `.plans/uuid.md`.
 * Three libraries (ADR-0001):
   * `(unique-id)`, the core: text and bytes in and out; version, variant and v7
-    timestamp; `uuid=?`, `uuid<?` and `uuid-hash`; the nil and max ids; and
-    `make-uuid-v4` and `make-uuid-v7`, which take every bit they do not fix as
-    arguments.
+    timestamp; `uuid=?`, `uuid<?` and `uuid-hash`; `make-uuid-hash`, a keyed hash
+    whose key is an argument; the nil and max ids; and `make-uuid-v4` and
+    `make-uuid-v7`, which take every bit they do not fix as arguments.
   * `(unique-id generator)`: a generator, given a clock and an entropy source, whose v7
     ids increase, but when the clock falls more than 10 seconds behind.
   * `(unique-id system)`: the system's clock, through SRFI-19, bytes from
-    `/dev/urandom`, and a generator made of the two.
-* An id is an opaque, sealed record of 16 bytes (ADR-0004). `uuid=?` compares ids and
-  `uuid-hash` hashes them; `equal?` on ids is no part of the contract.
+    `/dev/urandom`, and a generator and a keyed hash made of them.
+* An id is an opaque, sealed record of 16 bytes (ADR-0004). `uuid=?` compares ids, and
+  `uuid-hash` and `make-uuid-hash`'s procedures hash them; `equal?` on ids is no part of
+  the contract.
 
 ### Architecture & portability
 
@@ -37,14 +38,16 @@
   procedures, no reader syntax of either, no file named `.chezscheme.sls` or `.ss`, which
   Chez loads in place of the `.sls`, nor `.guile.sls`, which Guile does. `make
   check-tests` holds `tests/` to it: STEM.sls and STEM.sps alone, importing only
-  `(rnrs ...)` but `(rnrs eval)`, `(srfi :64)`, the library and `tests/`' own
-  libraries.
+  `(rnrs ...)` but `(rnrs eval)`, `(srfi :64)`, `(srfi :19)`, the library and
+  `tests/`' own libraries (ADR-0008).
 * R6RS leaves some behaviour to the implementation. Prefer the form every implementation
   agrees on, and when the code relies on an R6RS guarantee that is easy to get wrong, say
   which in a comment. Known edges:
   * `equal?` on records: Chez answers `#f` for two ids with the same bytes, Guile `#t`.
   * Fixnums: R6RS promises a fixnum width of only 24 bits, sign included, so a
-    nonnegative fixnum is below 2^23 everywhere. Hashing arithmetic stays below it.
+    nonnegative fixnum is below 2^23 everywhere. `uuid-hash`'s arithmetic stays below
+    it, in `fx` operations. `make-uuid-hash`'s 32-bit words pass it, so its arithmetic
+    is generic and stays below 2^33, a fixnum on 64-bit Chez and Guile (ADR-0007).
   * Names R7RS has are not all R6RS: `bytevector`, `bytevector-append`,
     `read-bytevector` and `string-map` are not. Check the R6RS library before using
     one.
@@ -99,7 +102,8 @@
 
 * `(unique-id)` and `(unique-id generator)` have none. `(unique-id system)` imports
   `(srfi :19)`: chez-srfi's on Chez, Guile's own on Guile (ADR-0002).
-* The suites use SRFI-64: chez-srfi's on Chez, Guile's own on Guile.
+* The suites use SRFI-64, and the system suite SRFI-19 too: chez-srfi's on Chez,
+  Guile's own on Guile.
 * chez-srfi (https://github.com/arcfide/chez-srfi) is a submodule under `vendor/`,
   pinned at `SRFI_PIN`, the commit threading, chez-http-server and circuit pin
   (ADR-0002). `make submodules` clones it, where the network is; `make deps` links it
@@ -108,8 +112,8 @@
 * Builds and tests run on the host's Chez, found as `scheme` or `chez` on `PATH` or named
   by `CHEZ`, and the host's Guile 3, found as `guile` or `guile-3.0` or named by `GUILE`
   (ADR-0003). There is no development container.
-* The package will be published on Akku. `Akku.manifest` names chez-srfi once
-  `(unique-id system)` exists.
+* The package will be published on Akku. `Akku.manifest` names chez-srfi, from the
+  version built from `SRFI_PIN` up (ADR-0008).
 
 ### Layout, process & libraries
 
@@ -117,7 +121,10 @@
   all plain R6RS, which both lanes run. `tools/` holds the audits, `make
   check-imports`, `make check-suites` and `make check-tests`, with
   `(unique-id-checks)`, their suites and fixtures, which run on Chez alone and may use
-  Chez's own procedures, through `(only (chezscheme) ...)`.
+  Chez's own procedures, through `(only (chezscheme) ...)`. It also holds the fork
+  suite, `tools/test-system-fork.sps`, which no plain R6RS suite could be: it runs
+  `tools/fork-probe.sps` as a child program, with `src/` on the child's path alone
+  (ADR-0008).
 * Plans live in `/.plans`, decision records in `/.plans/decisions`.
 * The ledger is `/.plans/progress.md`: where the project stands, the next slice, and a
   close-out for each merged slice. `/.plans/global-constraints.md` holds the decision
@@ -150,16 +157,17 @@
 * **Hold the shell's effects with scripted stand-ins**: a clock that answers a list of
   times, an entropy source that answers given bytes and records how many it was asked
   for. Assert what was asked as well as what came back.
-* Run mutants on copies under `build/`, each suite under a timeout and a memory cap, on
-  both lanes:
+* Run mutants on copies under `build/`, each suite under a timeout, a memory cap and the
+  lanes' cap of 64 file descriptors, on both lanes:
 
   ```sh
-  (ulimit -v 4194304 && timeout 60 "$CHEZ" --libdirs src:tests:build/scheme-libs --program tests/test-x.sps)
-  (ulimit -v 4194304 && timeout 60 env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH XDG_CACHE_HOME="$PWD/build/guile-cache" "$GUILE" --r6rs --no-auto-compile -L "$PWD/src" -L "$PWD/tests" -l scripts/guile-prelude.scm tests/test-x.sps)
+  (ulimit -v 4194304 && ulimit -n 64 && timeout 60 "$CHEZ" --libdirs src:tests:build/scheme-libs --program tests/test-x.sps)
+  (ulimit -v 4194304 && ulimit -n 64 && timeout 60 env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH XDG_CACHE_HOME="$PWD/build/guile-cache" "$GUILE" --r6rs --no-auto-compile -L "$PWD/src" -L "$PWD/tests" -l scripts/guile-prelude.scm tests/test-x.sps)
   ```
 
-  With `&&`, a shell that refuses the cap runs nothing rather than running the suite
-  uncapped.
+  With `&&`, a shell that refuses a cap runs nothing rather than running the suite
+  uncapped. The descriptor cap is what makes a leaked port fail: Guile closes ports its
+  collector finds, so under a higher limit it hides the leak.
 
 **Tests**
 

@@ -462,12 +462,12 @@
                        (string-append "it imports " (written ref) not-allowed))))))))
 
   ;; tests-policy : (Listof Library-Name) (Listof Library-Name) -> Policy
-  ;; A file under tests/ may import (srfi :64), the (unique-id ...) libraries
-  ;; in SRC-NAMES, and the libraries in TEST-NAMES, those under tests/.
+  ;; A file under tests/ may import (srfi :64), (srfi :19), the (unique-id ...)
+  ;; libraries in SRC-NAMES, and the libraries in TEST-NAMES, those under tests/.
   (define (tests-policy src-names test-names)
     (lambda (rel ref)
       (cond
-        ((equal? ref '(srfi :64)) '())
+        ((member ref '((srfi :64) (srfi :19))) '())
         ((eq? (car ref) 'unique-id)
          (if (member ref src-names) '() (missing-library rel ref)))
         ((member ref test-names) '())
@@ -475,7 +475,7 @@
          (list (list rel 'import
                      (string-append "it imports " (written ref)
                                     "; a file under tests/ imports only (rnrs ...), (srfi :64),"
-                                    " (unique-id ...) and the libraries under tests/")))))))
+                                    " (srfi :19), (unique-id ...) and the libraries under tests/")))))))
 
   ;; --- check-tests ---------------------------------------------------------
 
@@ -498,9 +498,9 @@
   ;;
   ;;   program-form  its first datum is not (import ...)
   ;;   import        an import names (rnrs eval), or a library other than
-  ;;                 (rnrs ...), (srfi :64), the (unique-id ...) libraries
-  ;;                 under SRC and the libraries under TESTS, however it is
-  ;;                 wrapped; or cannot be read
+  ;;                 (rnrs ...), (srfi :64), (srfi :19), the (unique-id ...)
+  ;;                 libraries under SRC and the libraries under TESTS,
+  ;;                 however it is wrapped; or cannot be read
   ;;
   ;; and, for TESTS itself, not-a-directory. Litter is passed over, as by
   ;; import-complaints. SRC need not exist: then no (unique-id ...) library

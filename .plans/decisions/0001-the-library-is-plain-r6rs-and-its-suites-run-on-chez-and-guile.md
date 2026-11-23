@@ -56,6 +56,12 @@ chez-srfi carries for Chez and Guile carries itself.
    read files and run child processes, which R6RS cannot do portably, and they test
    tooling, not the library.
 
+**Amended 2026-11-22, by ADR-0008:** rule 4 lets a file under `tests/` import `(srfi
+:19)` too, which both lanes have, so the system suite can read `time-utc` beside
+`system-clock`. Rule 5's `tools/` also holds the fork suite, on Chez alone, which runs
+`(unique-id system)` in a child program with `src/` on the child's path: no plain R6RS
+suite can fork.
+
 ## Consequences
 
 - **A suite must hold on both SRFI-64s.** AGENTS.md's testing rules are written so they

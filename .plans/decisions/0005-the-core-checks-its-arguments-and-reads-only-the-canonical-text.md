@@ -53,7 +53,9 @@ with `#f`, never read leniently.
 - **Every suite asserts a raise's who and irritant**, so a check left to the record
   fails on both lanes.
 - **The hash may change in any release** without breaking a suite. A table must not
-  store hashes.
+  store hashes. One test leans on it: the keyed-hash suite's flooding test builds ids
+  that share a `uuid-hash` from its linearity, and changes if `uuid-hash` does
+  (ADR-0007).
 - **The hash is unkeyed and linear under xor**: the hash of `a xor b` is the xor of
   theirs. Anyone can make many valid ids that share one hash, so a hashtable keyed by
   ids an adversary chooses, such as ids a client sends, can be flooded. A keyed hash,
