@@ -29,6 +29,11 @@ provisional. They bind until that record is accepted or amended.
   assertion violation whose who is the procedure's name and whose one irritant is that
   argument. `string->uuid` reads the canonical 36-character form alone, ASCII hex in
   either case, and answers `#f` for any other string (ADR-0005).
+- **One generator's v7 ids increase**, but at a reset: RFC 9562 §6.2's Method 1;
+  a clock within 10 seconds of the last id's time held to that time, and one further behind followed, a reset; a rollover moving the timestamp on one millisecond past the last.
+  A bad clock or entropy answer raises an assertion violation naming the `generate-`
+  procedure; running out of timestamp raises with `error`; a call that raises leaves the
+  generator as it was (ADR-0006).
 - **SRFI-19 is the library's one dependency**: chez-srfi's on Chez, Guile's own on Guile
   (ADR-0002).
 

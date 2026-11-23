@@ -115,6 +115,18 @@ The owner answered on 2026-11-22.
   Portability above, runs its suites on Chez alone; the Guile lane is new here.
 - **The package will be published on Akku**, not at once.
 
+Later answers, on 2026-11-22, as the slices raised them:
+
+- **`uuid-version` answers #f outside the RFC's variant**, so it is `Uuid -> (U Nat #f)`,
+  not the design's `Uuid -> Nat` (ADR-0005).
+- **`string->uuid` raises for a non-string**, as every procedure does outside its domain
+  (ADR-0005).
+- **A keyed hash comes in slice 3**, and `uuid-hash` stays (ADR-0005).
+- **A clock more than 10 seconds behind resets the generator**, amending "a clock that
+  steps back is ignored" above. Within 10 seconds of the last id it is ignored as before;
+  further behind, the next id takes the clock's time. This departs from RFC 9562 §6.2's
+  SHOULD, as LiosK's uuidv7 does, and was chosen over refusing (ADR-0006).
+
 Decided with the scaffold, not asked of the owner:
 
 - **The library is three libraries** (ADR-0001): `(unique-id)`, the core;

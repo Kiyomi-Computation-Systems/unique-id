@@ -6,13 +6,13 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 
 ## Now
 
-- **Slice 1, the core, `(unique-id)`, is merged**, squashed from
-  [PR #2](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/2) on 2026-11-22;
+- **Slice 2, the generator, `(unique-id generator)`, is merged**, squashed from
+  [PR #3](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/3) on 2026-11-22;
   its close-out is below.
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
-  decisions they led to.
-- **Next: slice 2**, the generator, `(unique-id generator)`.
+  decisions they led to; later answers are recorded there too.
+- **Next: slice 3**, the system, `(unique-id system)`, with the keyed hash.
 
 ## Slices
 
@@ -23,7 +23,7 @@ before starting slice work. When a slice merges, update **Now** and add a close-
    and variant bits.
 2. **The generator, `(unique-id generator)`**: `make-uuid-generator`, `generate-v4`,
    `generate-v7`, with RFC 9562 §6.2 Method 1's counter. A scripted clock that repeats,
-   steps back and overflows the counter gives strictly increasing ids.
+   steps back and overflows the counter gives strictly increasing ids; one more than 10 seconds behind resets it.
 3. **The system, `(unique-id system)`**: the clock through SRFI-19, bytes from
    `/dev/urandom`, and a generator made of them, whose ids parse back and differ.
    `Akku.manifest` names chez-srfi; `akku` reads it.
@@ -53,6 +53,82 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **Nothing has run on macOS**, which the Makefile and the scripts aim to support.
 
 ## Close-outs
+
+### Slice 2, the generator: PR #3, 2026-11-22
+
+- **What merged:**
+  - **The library:** `src/unique-id/generator.sls`, `(unique-id generator)`. It exports
+    `make-uuid-generator`, `uuid-generator?`, `generate-v4` and `generate-v7`, built to
+    the contract in [slice-2.md](slice-2.md).
+  - **The suites:**
+    - generator, 93 tests: exact calls and answers from A.6 and A.3, bad answers,
+      rollover, reset and running out;
+    - monotonic, 10 seeded runs of scripted clocks.
+  - **Records:** ADR-0006. Also the brief's later answers, README.org, CHANGELOG.md, an
+    AGENTS.md trap, the global constraints, and the Makefile's Guile `-L` order.
+- **The owner's choices:**
+  - The keyed hash goes in slice 3.
+  - A clock more than 10 seconds behind the last id resets the generator, chosen over
+    counting on and over refusing.
+  - The reset was kept after it was shown to depart from §6.2's SHOULD, as LiosK's
+    uuidv7 does.
+- **Chosen with the slice:**
+  - Method 1, seeded from 11 random bits.
+  - One entropy call per id.
+  - A bad clock or entropy answer raises an assertion violation, and running out
+    raises with `error`.
+  - A raise leaves the generator unchanged.
+  - Order holds within one generator only.
+- **How it was built:**
+  - A read-only review of the contract, on Opus, came before any building, which the
+    slice 1 reflection asked for.
+  - Then three Sonnet builders worked in parallel, from one contract: the library and
+    the two suites. A mutation run on Sonnet and an adversarial review on Opus followed,
+    and two Sonnet fixers.
+  - The reset was its own round: tests first, the library after, mutants, and a focused
+    Opus review.
+- **Verified:**
+  - `make test` on Chez 10.4.0 and Guile 3.0.11, and the Guile lane on Guile 3.0.9.
+  - CI on amd64 and arm64, with Chez 10.4.1 and Guile 3.0.9.
+  - All 46 mutants of the generator are killed on all three Schemes, each by a counted
+    test failure, as were the 13 mutants the reviews built, each when it was made.
+- **The contract review**, before building, found:
+  - which calls happen on a path that raises was unspecified;
+  - the rollover vector could not tell LAST-MS + 1 from NOW + 1, which answers
+    decreasing ids;
+  - the four table vectors shared their last 8 bytes;
+  - nothing tested the 2^48 edge.
+
+  All of these were fixed before any builder started.
+- **The slice review** found no fault in the library's behaviour. It found five
+  untested paths, each with a surviving mutant, and doc and signature slips:
+  - a full counter, then the clock moving on;
+  - a bad entropy answer at a new tick after a first id;
+  - the generator's opacity;
+  - a bad NOW on an exhausted generator;
+  - v4 answers indistinguishable from strings.
+- **The reset review** found:
+  - two wrong libraries passing both suites: state changed by a raise on the reset
+    path, and the edge unpinned on the rollover path;
+  - the departure from §6.2's SHOULD, which the recommendation to the owner had missed;
+  - about a dozen untrue claims, among them "always increase", "breaks once", "10
+    seconds ahead" (it is 10.001) and the rate that resets without a clock fault.
+- **Caught in hand-backs:**
+  - **Guile's `-L` order.** Guile searches `-L` directories in the order given, so the
+    scaffold's Guile lane searched `tests/` before `src/`, though its comment said the
+    opposite. A shadow library planted in `tests/` replaced the core for all 150 of
+    its tests. `make check-tests` had always refused such a file. The Makefile now puts
+    `src/` first.
+  - A builder's stub runs on Guile had loaded the real library through that order. It
+    was told, and reran them.
+- **Traps recorded in AGENTS.md:** Guile's `-L` order. To test a stand-in library, put
+  its directory first on both Schemes.
+- **Also learned:**
+  - SRFI-19's `time-monotonic` runs 37 s ahead of `time-utc` on both Schemes.
+  - A clock held exactly 10 s behind cannot stay held past a rollover: the rollover
+    puts it 10.001 s behind.
+  - A stray `git stash` and `git stash pop` in one command did no harm, but is no
+    way to work.
 
 ### Slice 1, the core: PR #2, 2026-11-22
 
