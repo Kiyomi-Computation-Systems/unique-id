@@ -14,7 +14,7 @@
     `make-uuid-v4` and `make-uuid-v7`, which take every bit they do not fix as
     arguments.
   * `(unique-id generator)`: a generator, given a clock and an entropy source, whose v7
-    ids always increase.
+    ids increase, but when the clock falls more than 10 seconds behind.
   * `(unique-id system)`: the system's clock, through SRFI-19, bytes from
     `/dev/urandom`, and a generator made of the two.
 * An id is an opaque, sealed record of 16 bytes (ADR-0004). `uuid=?` compares ids and
@@ -155,7 +155,7 @@
 
   ```sh
   (ulimit -v 4194304 && timeout 60 "$CHEZ" --libdirs src:tests:build/scheme-libs --program tests/test-x.sps)
-  (ulimit -v 4194304 && timeout 60 env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH XDG_CACHE_HOME="$PWD/build/guile-cache" "$GUILE" --r6rs --no-auto-compile -L "$PWD/tests" -L "$PWD/src" -l scripts/guile-prelude.scm tests/test-x.sps)
+  (ulimit -v 4194304 && timeout 60 env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH XDG_CACHE_HOME="$PWD/build/guile-cache" "$GUILE" --r6rs --no-auto-compile -L "$PWD/src" -L "$PWD/tests" -l scripts/guile-prelude.scm tests/test-x.sps)
   ```
 
   With `&&`, a shell that refuses the cap runs nothing rather than running the suite
@@ -205,6 +205,8 @@
   imported libraries that export one name, which Chez refuses outright. Run suites
   through `make`, or with `GUILE_ENV` and `GUILE_FLAGS` from the Makefile: they keep
   `GUILE_LOAD_PATH` and the user's compiled-file cache out.
+* Guile searches `-L` directories in the order given, the first winning, as Chez does
+  `--libdirs`. To test a stand-in library, put its directory first on both.
 * Guile 3.0.9's SRFI-64 writes `SUITE-NAME.log` to the directory it runs in, so the
   Guile lane runs from `build/guile`, and gives each suite its absolute path.
 * On Guile, a suite's top level also sees Guile's own core bindings, `string-map` for

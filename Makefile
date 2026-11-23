@@ -55,8 +55,9 @@ TOOL_LIBDIRS := tools:tests:$(SRFI_LIBS)
 export TOOL_LIBDIRS
 
 # Guile in R6RS mode, which loads STEM.sls, and prefers STEM.guile.sls, which
-# check-imports and check-tests refuse. Each -L goes to the front of the load
-# path, so src/ comes first, then tests/, then Guile's own directories.
+# check-imports and check-tests refuse. Guile searches the -L directories in
+# the order given, as Chez does its libdirs, so src/ comes first, then tests/,
+# then Guile's own directories.
 # GUILE_ENV keeps the environment out: GUILE_LOAD_PATH and
 # GUILE_LOAD_COMPILED_PATH would put other directories ahead of Guile's own,
 # and Guile reads compiled files from XDG_CACHE_HOME's cache even with
@@ -66,7 +67,7 @@ export TOOL_LIBDIRS
 # export one name, which Chez refuses outright.
 GUILE_ENV := env -u GUILE_LOAD_PATH -u GUILE_LOAD_COMPILED_PATH \
              XDG_CACHE_HOME=$(abspath $(BUILD_DIR))/guile-cache
-GUILE_FLAGS := --r6rs --no-auto-compile -L $(abspath tests) -L $(abspath src) \
+GUILE_FLAGS := --r6rs --no-auto-compile -L $(abspath src) -L $(abspath tests) \
                -l $(abspath scripts/guile-prelude.scm)
 
 # Every suite, in one order everywhere: make 3.82 to 4.2 leave $(wildcard)

@@ -12,7 +12,13 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to.
-- **Next: slice 2**, the generator, `(unique-id generator)`.
+- **Slice 2, the generator, `(unique-id generator)`, is built on branch `generator`**,
+  to the contract in [slice-2.md](slice-2.md), which a read-only review on Opus checked
+  before any building. It is reviewed, and not yet merged. ADR-0006 records its design.
+  The owner chose, after the review, a reset when the clock falls more than 10 seconds
+  behind; a focused review of that change followed. `make test` passes on Chez 10.4.0,
+  Guile 3.0.11 and Guile 3.0.9. All 46 mutants of the generator are killed on each, as
+  are the two the reset's review built.
 
 ## Slices
 
@@ -23,7 +29,7 @@ before starting slice work. When a slice merges, update **Now** and add a close-
    and variant bits.
 2. **The generator, `(unique-id generator)`**: `make-uuid-generator`, `generate-v4`,
    `generate-v7`, with RFC 9562 §6.2 Method 1's counter. A scripted clock that repeats,
-   steps back and overflows the counter gives strictly increasing ids.
+   steps back and overflows the counter gives strictly increasing ids; one more than 10 seconds behind resets it.
 3. **The system, `(unique-id system)`**: the clock through SRFI-19, bytes from
    `/dev/urandom`, and a generator made of them, whose ids parse back and differ.
    `Akku.manifest` names chez-srfi; `akku` reads it.

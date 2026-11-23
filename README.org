@@ -15,16 +15,16 @@ UUIDs for R6RS Scheme: version 4, random, and version 7, ordered by time, as
   lower case, and turn an id into its 16 bytes and back.
 - *Version 4 and version 7.* Make either from bits you supply, or from a
   generator.
-- *Ids that sort by time.* One generator's v7 ids always increase: within one
-  millisecond, when the clock steps back, and when the counter runs out.
+- *Ids that sort by time.* One generator's v7 ids increase: within one
+  millisecond, when the clock steps back by up to 10 seconds, and when the counter runs out.
 - *Look inside.* An id's version, its variant, and a v7 id's timestamp.
 - *Compare and hash.* =uuid=?=, =uuid<?=, and =uuid-hash= for hashtables. The
   nil and max ids.
 - *Plain R6RS.* Tested on Chez Scheme and Guile. Only ~(unique-id system)~
   needs more: SRFI-19 for the clock, and ~/dev/urandom~.
 
-Nothing is released yet. ~(unique-id)~ is written; ~(unique-id generator)~ and
-~(unique-id system)~ are not yet. The names below may change in any release
+Nothing is released yet. ~(unique-id)~ and ~(unique-id generator)~ are written;
+~(unique-id system)~ is not yet. The names below may change in any release
 before 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 
 ** Quick start
@@ -39,7 +39,7 @@ before 1.0; [[file:CHANGELOG.md][CHANGELOG.md]] will say what each release has.
 (uuid-version id)               ; => 7
 (uuid-v7-timestamp id)          ; => milliseconds since 1970
 
-(uuid<? id (generate-v7 gen))   ; => #t: the next id is always greater
+(uuid<? id (generate-v7 gen))   ; => #t: the next id is greater
 
 (string->uuid "not an id")      ; => #f
 
@@ -74,6 +74,26 @@ answer differently for records.
   that names it.
 - =uuid-hash= has no secret key, so anyone can make ids that share a hash. Do
   not key a hashtable with it by ids a client sends.
+
+A generator, from a clock and a source of random bytes that you give it:
+
+#+begin_src scheme
+(import (rnrs) (unique-id) (unique-id generator))
+
+;; CLOCK answers Unix milliseconds; ENTROPY, given N, answers N random bytes.
+(define gen (make-uuid-generator clock entropy))
+(generate-v4 gen)
+(generate-v7 gen)   ; greater than this generator's last v7 id
+#+end_src
+
+- One generator's v7 ids increase: when the clock repeats, when it falls up
+  to 10 seconds behind the last id, and when you ask for thousands in one
+  millisecond.
+- That order is one generator's alone. Ids from two generators, or from before
+  a restart, may interleave.
+- A clock that falls more than 10 seconds behind the last id resets its
+  generator: the next id takes the clock's time, and sorts below the last one.
+- The clock and the random source must not call their own generator.
 
 Three libraries:
 
@@ -110,6 +130,8 @@ make test         # the checks, then every suite on Chez and on Guile
 
 The formats, and the test vectors the suites check, are from [[https://www.rfc-editor.org/rfc/rfc9562][RFC 9562]],
 /Universally Unique IDentifiers (UUIDs)/, by K. Davis, B. Peabody and P. Leach.
+The generator's 10-second allowance for a clock that steps back follows
+[[https://github.com/LiosK/uuidv7][LiosK's uuidv7]] and its Rust port, [[https://docs.rs/uuid7][uuid7]].
 
 ** License
 
