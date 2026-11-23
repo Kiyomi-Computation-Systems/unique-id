@@ -18,8 +18,9 @@ before starting slice work. When a slice merges, update **Now** and add a close-
     [PR #5](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/5);
   - the docs, the generated API reference and the docs site, squashed from
     [PR #6](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/6).
-    ADR-0009, which records them, is still Proposed: it waits on the owner. GitHub
-    Pages is on, but nothing has deployed the site yet.
+    ADR-0009, which records them, is accepted. The site is live at
+    https://kiyomi-computation-systems.github.io/unique-id/, deployed by hand from
+    `main` on 2026-11-23; from now on a `v*` tag deploys it.
 
   When to publish on Akku is still the owner's call: the brief says "not at once". The
   items under **Open** are the known work.
@@ -88,7 +89,7 @@ before starting slice work. When a slice merges, update **Now** and add a close-
     `docs/`.
   - **CI and Pages:** a `docs` job in `ci.yml`, on Ubuntu's Chez 9.5.8 and
     `cmark-gfm`, and `pages.yml`, threading's, which deploys on a `v*` tag or by hand.
-  - **Records:** ADR-0009, Proposed. Also AGENTS.md, the global constraints, README.org,
+  - **Records:** ADR-0009. Also AGENTS.md, the global constraints, README.org,
     CHANGELOG.md, `Akku.manifest`'s dev dependency and `.akkuignore`. In `src/`, two
     comments only: two library headers now open with a capital, and one quote is
     Markdown's, as each renders on the reference page.
@@ -97,7 +98,8 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   - The docs and the site in one piece of work.
   - GitHub Pages turned on. It builds from Actions, and its `github-pages` environment
     deploys from `main` and from `v*` tags alone, as threading's does.
-- **Chosen with the work, in ADR-0009, which waits on the owner:**
+  - ADR-0009, accepted on 2026-11-23 after the merge.
+- **Chosen with the work, and accepted with ADR-0009:**
   - The reference takes each export's call shape, its signature and the comment's
     first paragraph. Later paragraphs, after a line that is `;;` alone, are notes for
     whoever changes the code. Each library's header comment opens its section, less

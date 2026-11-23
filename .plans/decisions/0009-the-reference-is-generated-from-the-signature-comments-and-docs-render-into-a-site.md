@@ -1,8 +1,9 @@
 # ADR-0009: The API reference is generated from the signature comments, and `docs/` renders into a site
 
-- **Status:** Proposed. The owner chose decisions 2 and 3 on 2026-11-23, the reference
+- **Status:** Accepted. The owner chose decisions 2 and 3 on 2026-11-23, the reference
   generated from the source over a hand-written one, and the site in the same piece of
-  work. The rest was chosen with the work, not asked of the owner.
+  work. The rest was chosen with the work, and the owner accepted the whole record on
+  2026-11-23, after the merge.
 - **Date:** 2026-11-23
 - **Scope:** `docs/`, the reference generator under `tools/`, `site/`, the Makefile's
   `reference`, `site-deps`, `site` and `check-site`, `.github/workflows/ci.yml`'s `docs`
