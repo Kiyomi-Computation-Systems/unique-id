@@ -6,13 +6,14 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 
 ## Now
 
-- **Slice 2, the generator, `(unique-id generator)`, is merged**, squashed from
-  [PR #3](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/3) on 2026-11-22;
-  its close-out is below.
+- **Slice 3, the system, `(unique-id system)`, and the keyed hash, is merged**,
+  squashed from [PR #4](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/4)
+  on 2026-11-23; its close-out is below. The brief's three slices are all merged.
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to; later answers are recorded there too.
-- **Next: slice 3**, the system, `(unique-id system)`, with the keyed hash.
+- **Next: none planned.** The brief publishes on Akku "not at once", so when is the
+  owner's call. The items under **Open** are the known work.
 
 ## Slices
 
@@ -48,10 +49,126 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   plants a shadow library and asserts it loses would hold it.
 - **Two `run-check` behaviours are untested**: that it runs `$CHEZ` rather than whatever
   `scheme` is on `PATH`, and that the child's stdin is `/dev/null`.
-- **Nothing has run on macOS**, which the Makefile and the scripts aim to support. The
-  fork suite is the likeliest to break there: it loads libc by name to find `fork`.
+- **macOS has run on arm64 alone.** On 2026-11-23, `make test` on slice 3's branch
+  passed every lane, the fork suite among them, on macOS 26.7.1 on arm64. It ran with
+  Apple's GNU make 3.81, Homebrew's Chez 10.4.1, found as `chez`, and Guile 3.0.11.
+  Nothing has run on an Intel Mac.
 
 ## Close-outs
+
+### Slice 3, the system and the keyed hash: PR #4, 2026-11-23
+
+- **What merged:**
+  - **The library:**
+    - `make-uuid-hash`, in `src/unique-id.sls`;
+    - `src/unique-id/system.sls`, `(unique-id system)`, which exports `system-clock`,
+      `system-entropy`, `make-system-uuid-generator` and `make-system-uuid-hash`.
+
+    Both were built to the contract in [slice-3.md](slice-3.md).
+  - **The suites:**
+    - keyed hash, 28 tests: 12 HalfSipHash vectors, one from the SipHash reference's
+      `vectors.h` and 11 computed by its C code;
+    - system, 23 tests;
+    - the fork suite, `tools/test-system-fork.sps`, 9 tests, on Chez, which runs
+      `tools/fork-probe.sps` as a child program.
+  - **Tooling:** `make check-tests` allows `(srfi :19)` in `tests/`, and every lane
+    runs each suite under `ulimit -n 64`.
+  - **Records:** ADR-0007 and ADR-0008, with amendments to ADR-0001 and ADR-0005.
+    Also `Akku.manifest`'s chez-srfi dependency, README.org, CHANGELOG.md, AGENTS.md
+    and the global constraints.
+- **The owner's choices:**
+  - The keyed hash in slice 3, with `uuid-hash` kept.
+  - ADR-0007 and ADR-0008, accepted on 2026-11-23 after the build. The decisions in
+    them were made with the slice.
+- **Chosen with the slice, and accepted with those records:**
+  - **The keyed hash:**
+    - HalfSipHash-2-4 of the 16 octets, the 32-bit output read little-endian;
+    - generic arithmetic, below 2^33;
+    - its procedure raises under `make-uuid-hash`'s name.
+  - **The system library:**
+    - `time-utc` for the clock;
+    - a fresh unbuffered `/dev/urandom` port at every call that reads, closed by
+      `dynamic-wind`;
+    - makers that answer a new generator or hash at each call, so the library holds
+      none of its own.
+  - **Tests and packaging:**
+    - `(srfi :19)` in `tests/`;
+    - the fork suite in `tools/`, on Chez;
+    - the 64-descriptor cap on every lane;
+    - chez-srfi from `0.0.0-akku.181.7879b52` up.
+- **How it was built:**
+  - A read-only review of the contract, on Opus, came before any building.
+  - Then five Sonnet builders worked in parallel, on disjoint files: the library, the
+    keyed-hash suite, the system suite, the tools rule and cap, and the fork suite.
+    The suites were built against stubs that raise `'stub`.
+  - A Sonnet mutation run and a read-only adversarial review on Opus followed, and two
+    Sonnet fixers.
+- **Verified:**
+  - `make test` on Chez 10.4.0 and Guile 3.0.11, and the Guile lane on Guile 3.0.9.
+  - CI on amd64 and arm64, with Chez 10.4.1 and Guile 3.0.9.
+  - **macOS, its first run.** `make test` passed every lane, the fork suite among them,
+    on macOS 26.7.1 on arm64, with Apple's make 3.81, Homebrew's Chez 10.4.1 and
+    Guile 3.0.11.
+  - **Mutants:** 116 of the library were run on all three Schemes.
+    - 100 are killed on every Scheme. One more, a shared buffered port, is killed on
+      Chez alone, by the fork suite.
+    - The other 15 survive, each listed in the contract with its reason.
+  - **Stubs:** the keyed-hash and system suites each fail every test against them, on
+    all three Schemes.
+  - **Akku:** Akku 1.1.0 installs the package, and a consumer program runs on Chez.
+- **The contract review**, before building, found:
+  - **A test that fails on correct code:** empty bytevectors are one object on all
+    three Schemes, so "a fresh empty bytevector" could not be tested.
+  - **Stale records:** AGENTS.md and the global constraints still stated the old rules.
+  - **Leaks hidden on Guile:** the 5000-call leak test was blind there, since Guile
+    closes the ports its collector finds. Hence the descriptor cap.
+  - **A design unsafe across a fork:** a shared buffered port passed every planned
+    test. Hence the fork suite.
+  - **Gaps in the contract:** survivors it did not list, the flooding test's reliance on
+    `uuid-hash`, and the order the builders depended on.
+
+  All of these were fixed before any builder started. The review's one wrong claim was
+  that Chez finds `fork` without loading libc. The fork builder found it does not, and
+  that was confirmed.
+- **The slice review** found four wrong libraries that passed every suite, each one
+  reproduced:
+  - entropy read one byte short into a zeroed bytevector, so its last byte is always 0;
+  - entropy that stops at 65536 bytes, leaving the rest 0;
+  - a hash key from a counter, the same in every process;
+  - a generator over a clock 9 s fast.
+
+  New tests kill all four. The review also found about a dozen slips:
+  - argument order in `let`;
+  - in the fork suite: the label order, the child's status and a stale output file;
+  - unguarded top-level calls;
+  - comments citing the contract;
+  - "every call opens" for "every call that reads";
+  - false claims in the ADRs, README.org and the manifest.
+- **Caught in hand-backs:**
+  - The key-read test must zero KEY before the first hash, or a copied key passes it.
+    The keyed-hash builder found this.
+  - The mutation run reported changed messages as gaps. Messages are not asserted,
+    under ADR-0005, and are now listed as survivors.
+- **Traps recorded in AGENTS.md:** the mutant recipe's descriptor cap, and why it is
+  needed: Guile closes the ports its collector finds, so under a higher limit a leak
+  hides.
+- **Also learned:**
+  - **Fork and buffering:**
+    - A buffered `/dev/urandom` port gives a forked child its parent's bytes, on both
+      Schemes; an unbuffered one does not. This settles slice 2's open note.
+    - `(buffer-mode none)` reads once per `get-bytevector-n`. A buffered port reads
+      8192 bytes on Chez, 4096 on Guile.
+  - **Costs on Chez 10.4.0:**
+    - opening an unbuffered port per call costs 1.3 to 1.6 µs, a buffered one 17.7 µs;
+    - the keyed hash 0.43 µs, `uuid-hash` 0.063 µs;
+    - a system v7 id 1.36 µs.
+  - **Akku 1.1.0:**
+    - the range `^0.0.0-akku.181.7879b52` locks at `0.0.0-akku.291.5219353`;
+    - `akku install` installs only the libraries under `src/`.
+  - **Tools:**
+    - Running the SipHash reference's own `test.c` was refused by the permission
+      classifier. A driver that reproduced the `vectors.h` entry did the job.
+    - Apple's make 3.81 runs the Makefile.
 
 ### Slice 2, the generator: PR #3, 2026-11-22
 
