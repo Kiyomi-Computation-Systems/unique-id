@@ -6,3 +6,9 @@ All notable changes to unique-id are recorded here. The format follows
 release before 1.0.
 
 ## [Unreleased]
+
+### Added
+
+- `(unique-id)`: ids as opaque records; text and bytes in and out; version, variant and
+  v7 timestamp; `uuid=?`, `uuid<?` and `uuid-hash`; `nil-uuid` and `max-uuid`;
+  `make-uuid-v4` and `make-uuid-v7` from the bits you supply.

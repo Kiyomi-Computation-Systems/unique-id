@@ -25,6 +25,10 @@ provisional. They bind until that record is accepted or amended.
   system's clock and `/dev/urandom` (ADR-0001).
 - **An id is an opaque, sealed record of 16 bytes.** `uuid=?`, `uuid<?` and `uuid-hash`
   compare and hash it; `equal?` on ids is no part of the contract (ADR-0004).
+- **Every exported procedure checks its own arguments**: one outside its domain raises an
+  assertion violation whose who is the procedure's name and whose one irritant is that
+  argument. `string->uuid` reads the canonical 36-character form alone, ASCII hex in
+  either case, and answers `#f` for any other string (ADR-0005).
 - **SRFI-19 is the library's one dependency**: chez-srfi's on Chez, Guile's own on Guile
   (ADR-0002).
 

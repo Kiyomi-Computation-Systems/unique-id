@@ -12,7 +12,10 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to.
-- **Next: slice 1**, the core, `(unique-id)`.
+- **Slice 1, the core, `(unique-id)`, is built on branch `core`**, to the contract in
+  [slice-1.md](slice-1.md), and reviewed; not yet merged. ADR-0005 records its edge
+  decisions, which the owner accepted. `make test` passes on Chez 10.4.0, Guile 3.0.11 and
+  Guile 3.0.9, and all 76 mutants of the library are killed on each.
 
 ## Slices
 
@@ -27,9 +30,22 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 3. **The system, `(unique-id system)`**: the clock through SRFI-19, bytes from
    `/dev/urandom`, and a generator made of them, whose ids parse back and differ.
    `Akku.manifest` names chez-srfi; `akku` reads it.
+   - **A keyed hash**, for tables keyed by ids a client sends, which `uuid-hash` leaves
+     open to flooding (ADR-0005). It has two parts:
+     - In the core, `make-uuid-hash : Bytevector -> (Uuid -> Nat)`, which takes the key
+       as an argument.
+     - In `(unique-id system)`, one keyed from `/dev/urandom`.
+
+     HalfSipHash-2-4 is the candidate, checked against the SipHash reference's own
+     vectors. Measured on a prototype, it is about 7× `uuid-hash`'s cost on Chez,
+     0.47 µs a hash, and 2× on compiled Guile. Its arithmetic stays below 2^33, so
+     AGENTS.md's below-2^23 rule for hashing needs amending with it. `uuid-hash` stays.
 
 ## Open
 
+- **`uuid-hash` can be flooded until slice 3.** It is unkeyed and linear under xor, so
+  anyone can make many valid ids that share a hash. README.org warns against keying a
+  table by client ids with it; slice 3 adds a keyed hash.
 - **On CI, no lane catches a test that expects `#f` from a raise**: chez-srfi and Guile
   3.0.9 both pass it. AGENTS.md forbids such tests. Only the host's Guile 3.0.11 catches
   one (ADR-0003).
