@@ -68,18 +68,18 @@ provisional. They bind until that record is accepted or amended.
 - **CI builds Chez 10.4.1 from its sha256-pinned tarball** (`scripts/ci/build-chez.sh`)
   and installs Ubuntu's `guile-3.0`, and asserts the versions and machine type it ends up
   with (ADR-0003). The one exception is the `docs` job, which runs Ubuntu's Chez 9.5.8
-  and `cmark-gfm` for `make check-site` and `make site` alone (ADR-0009, provisional).
+  and `cmark-gfm` for `make check-site` and `make site` alone (ADR-0009).
 
 ## Docs
 
 - **`docs/` is user documentation**: nine pages, in the order `site/pages.sls` lists.
   They describe the code as it is, and every example in them runs as a program on Chez
-  and on Guile and shows what both print (ADR-0009, provisional).
+  and on Guile and shows what both print (ADR-0009).
 - **`docs/reference.md` is generated** by `make reference`, from each export's
   signature comment and the paragraph after it, and from each library's header. A
   suite in the tools lane fails `make test` while the page is stale: it is the one test
-  that reads code comments (ADR-0009, provisional).
+  that reads code comments (ADR-0009).
 - **`site/` renders `docs/` into a static site** through chez-cmark-gfm, a dev
   dependency pinned in `Akku.lock`. `make check-site`, not `make test`, runs its tests
   and fails on a dangling page, link, anchor or `../` link. The package installs `src/`
-  alone (ADR-0009, provisional).
+  alone (ADR-0009).
