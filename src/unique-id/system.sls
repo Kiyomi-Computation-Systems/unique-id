@@ -1,5 +1,5 @@
 #!r6rs
-;;; (unique-id system): the system's clock and entropy, and what is made of
+;;; (unique-id system): The system's clock and entropy, and what is made of
 ;;; them.
 ;;;
 ;;;   system-clock                  the Unix time in milliseconds

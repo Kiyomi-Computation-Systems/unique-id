@@ -7,11 +7,13 @@
 ;; Schemes; Guile has its own. The range's floor is the version built from
 ;; the commit the submodule under vendor/ pins, which the suites run
 ;; against; Akku may pick a newer one. The suites' SRFI-64 comes from that
-;; submodule, so the manifest names no dev dependency. .akkuignore keeps the
+;; submodule too. The one dev dependency, chez-cmark-gfm, renders docs/ into
+;; the HTML site; Akku.lock pins it. .akkuignore keeps the docs, the site, the
 ;; tests, the tooling and the plans out of the package.
 (akku-package ("unique-id" "0.1.0")
   (synopsis "UUIDs, versions 4 and 7 (RFC 9562), for R6RS Scheme")
   (authors "Kiyomi Computation Systems LLC")
   (homepage "https://github.com/Kiyomi-Computation-Systems/unique-id")
   (license "BSD-3-Clause")
-  (depends ("chez-srfi" "^0.0.0-akku.181.7879b52")))
+  (depends ("chez-srfi" "^0.0.0-akku.181.7879b52"))
+  (depends/dev ("chez-cmark-gfm" "^2.0.0")))

@@ -1,12 +1,19 @@
 name: CI
 
-# Linux only, deliberately (AGENTS.md: do NOT set up macOS runners). One job,
-# run on two images, amd64 and arm64: it clones chez-srfi with `make
+# Linux only, deliberately (AGENTS.md: do NOT set up macOS runners). Two jobs.
+#
+# `linux` runs on two images, amd64 and arm64: it clones chez-srfi with `make
 # submodules`, holds it at its pin with `make check-pins`, builds Chez 10.4.1
 # (once, then cached), installs Ubuntu's Guile 3, and runs `make test`, which
 # runs check-help, check-suites, check-imports once src/ exists, and every
 # lane: the audits' suites on Chez, and the library suites on Chez and on
 # Guile.
+#
+# `docs` runs on one image, with Ubuntu's own Chez 9.5.8 and cmark-gfm: it
+# checks the generator of the HTML site, then every page of docs/ for a dead
+# link or anchor, then builds the site, so a pull request that breaks a link
+# or the build fails here and not at a release tag. The site is development
+# tooling, not the library, so it does not need the Chez the other job builds.
 #
 # Every action is pinned to a full commit SHA, with its tag in a comment: a tag
 # can be moved to other code, a commit cannot.
@@ -172,3 +179,37 @@ jobs:
 
       - name: Test
         run: make test
+
+  # Match the Pages build on every pull request, so a release tag cannot be
+  # the first place a documentation link, anchor, or native renderer fails.
+  docs:
+    name: docs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # make and git, which every later step runs; curl, which fetches
+      # chez-cmark-gfm's archive; chezscheme, which runs the generator;
+      # cmark-gfm, whose shared libraries chez-cmark-gfm loads; xz-utils, which
+      # unpacks that archive. Most are already on the image: naming them,
+      # before any step uses them, keeps the job from depending on that.
+      - name: Install Chez and cmark-gfm
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends make git curl chezscheme cmark-gfm xz-utils
+
+      # check-site links chez-srfi's SRFI-64, for the generator's suites.
+      - name: Init submodules
+        run: make submodules
+
+      - name: Get chez-cmark-gfm as Akku.lock pins it
+        run: make site-deps
+
+      - name: Gate the site
+        run: make check-site CHEZ=chezscheme
+
+      - name: Build the site
+        run: make site CHEZ=chezscheme

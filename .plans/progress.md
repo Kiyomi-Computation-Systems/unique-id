@@ -52,6 +52,10 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   plants a shadow library and asserts it loses would hold it.
 - **Two `run-check` behaviours are untested**: that it runs `$CHEZ` rather than whatever
   `scheme` is on `PATH`, and that the child's stdin is `/dev/null`.
+- **Nothing runs the guides' examples automatically.** Every example in `docs/` was run
+  by hand on Chez and Guile, and a fixer's throwaway script extracted the code blocks
+  and compared each `;; =>` result. A `make check-docs` built that way would catch a
+  page that the library's behaviour leaves wrong.
 - **macOS has run on arm64 alone.** On 2026-11-23, `make test` on slice 3's branch
   passed every lane, the fork suite among them, on macOS 26.7.1 on arm64. It ran with
   Apple's GNU make 3.81, Homebrew's Chez 10.4.1, found as `chez`, and Guile 3.0.11.

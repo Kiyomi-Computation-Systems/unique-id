@@ -4,7 +4,10 @@
 .superpowers
 AGENTS.md
 build
+build-site.sps
+docs
 scripts
+site
 tests
 tools
 vendor
