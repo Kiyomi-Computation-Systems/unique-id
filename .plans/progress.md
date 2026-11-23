@@ -12,18 +12,18 @@ before starting slice work. When a slice merges, update **Now** and add a close-
 - **The design** is the brief, [uuid.md](uuid.md). The owner answered its open questions
   on 2026-11-22; its **Answers** section records them, and ADR-0001 to ADR-0004 the
   decisions they led to; later answers are recorded there too.
-- **Preparing a release.** On 2026-11-23 the owner started preparing for an eventual
-  release. Two steps are merged, each with a close-out below:
+- **0.1.0 is the first release**: the signed tag `v0.1.0`, on the squash commit of
+  [PR #8](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/8), with a GitHub
+  release, on 2026-11-23. Its close-out is below. The work toward it, each with a
+  close-out below:
   - a sweep of the code comments, squashed from
     [PR #5](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/5);
   - the docs, the generated API reference and the docs site, squashed from
-    [PR #6](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/6).
-    ADR-0009, which records them, is accepted. The site is live at
-    https://kiyomi-computation-systems.github.io/unique-id/, deployed by hand from
-    `main` on 2026-11-23; from now on a `v*` tag deploys it.
-
-  When to publish on Akku is still the owner's call: the brief says "not at once". The
-  items under **Open** are the known work.
+    [PR #6](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/6). The site
+    is https://kiyomi-computation-systems.github.io/unique-id/, and a `v*` tag deploys
+    it.
+- **Next:** publishing on Akku is the owner's call, and `akku publish` signs with the
+  owner's key. The items under **Open** are the known work.
 
 ## Slices
 
@@ -66,6 +66,87 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   `akku publish` signs with the owner's key.
 
 ## Close-outs
+
+### Release 0.1.0: PR #8, 2026-11-23
+
+- **The owner's choices:**
+  - Version 0.1.0, as a git tag only. Akku comes later.
+  - Four things before the tag: a review of the whole library; the docs' examples run
+    in CI; the Akku install tried on both Schemes, with install steps; and the
+    ledger's small test gaps.
+  - After the review, each the recommended option: document the rollover reset
+    rather than change it; `bytevector->uuid` keeps raising for a wrong length; the
+    export names and the variant `rfc9562` stay.
+  - ADR-0010, accepted. The tag signed with the releases key, and a GitHub release.
+- **What merged:**
+  - **`make check-docs`, in `make test`** (ADR-0010): each page of `docs/` is one
+    program, run on Chez and on Guile, with every `;; =>` result compared. The
+    generator refuses a page it cannot check fully, and a refused page's program
+    fails. Its suite has 40 tests.
+  - **`make check-lane-order`, in `make test`**: both lanes find `src/` before `tests/`,
+    and the stand-in it plants is found at all.
+  - **`run-check`'s two tests**: it runs `$CHEZ`, and its child's stdin is `/dev/null`,
+    held by pointing the suite's own descriptor 0 at a file through libc.
+  - **Docs:** the reset that millions of ids a second cause; `uuid-hash`'s numbers may
+    change; printing ids; install steps for the tag; the 0.1.0 changelog entry.
+  - **Records:** ADR-0010, an amendment to ADR-0009, AGENTS.md, the global constraints,
+    and the plan, [release-0.1.0.md](release-0.1.0.md).
+- **How it was built:**
+  - A read-only review of the whole library, on Opus.
+  - Two Sonnet builders on disjoint files: `check-docs`, and the `run-check` tests. I
+    wrote the lane-order check and tried the Akku install.
+  - A read-only adversarial review on Opus, then a Sonnet fixer for `check-docs`; I
+    made the docs and records fixes.
+- **Verified:**
+  - `make test` in a fresh copy with no `build/`, on Chez 10.4.0 and Guile 3.0.11, and
+    its Guile and docs lanes on Guile 3.0.9. `make check-site` all green.
+  - CI on amd64 and arm64, on Chez 10.4.1 and Guile 3.0.9: the docs lanes ran 9 pages
+    each, and the lane-order check passed.
+  - Akku 1.1.0 installed the package into a clean project: the three libraries and the
+    LICENSE, nothing else. A program using all three ran on Chez and on Guile, with
+    `system-clock` within 0.2 s of the real time on each.
+  - Each new test was watched failing against a break in a copy of what it covers, and
+    both reviews' counterexample pages are caught.
+- **The whole-library review** found the libraries sound against RFC 9562, and
+  `make-uuid-hash` equal to a HalfSipHash written from the paper, on all 64 of the
+  reference's vectors and 3000 random keys and ids. It found:
+  - **A promise the docs broke.** They called a falling clock the one reset. But each
+    counter rollover moves the next id a millisecond ahead, so ids asked for faster
+    than milliseconds hold them run ahead of the clock, and reset once 10 s ahead.
+    ADR-0006 records it; the user docs did not. Reproduced: a stuck clock with
+    constant entropy goes back at id 20,492,051, after 1.2 s on Chez.
+  - `uuid-hash`'s numbers shown as fixed, though ADR-0005 lets them change.
+  - `generate-v7`'s comment: its reason for keeping CLOCK out of G was wrong. Only
+    ENTROPY is called after G's state is read.
+  - Three API questions, which the owner settled as above.
+- **The final review** found, each reproduced and fixed:
+  - **The new suite failed from a clean `build/`**, so CI's first run would have: a
+    `let` ran a program before the init that writes it, Chez making the second init
+    first.
+  - `;; =>` lines neither checked nor refused: indented, inside a form, `;;=>`, after a
+    block comment, and in fences the check did not read.
+  - `e.g.` shapes loose enough to pass Chez's upper-case hex, whitespace collapsed
+    inside strings, and a page that could exit before its failures counted.
+  - The docs' rates overstated by about 1.5×, taken from the least seed alone.
+  - The Guile install command without `--r6rs`, and the docs home page silent on the
+    release.
+- **Caught in hand-backs:**
+  - The `check-docs` suite had no `test-begin`, so it printed no summary, though its
+    tests counted.
+  - The `run-check` stand-in printed its arguments with `echo`; it uses `printf`.
+  - My own rename of a page's repeated `g` also caught the `g` in "e.g." and a word of
+    prose. `check-docs` then refused the page for a third repeat. Fixed by hand.
+- **Also learned:**
+  - **Reset rates**, simulated with random seeds: no reset in 60 s at 2.5 million ids a
+    second; a reset after 33 s at 4 million, and 9.8 s at 6.2 million. A millisecond
+    holds 2049 to 4096 ids, about 3072 on average.
+  - `make-system-uuid-generator` makes about 670,000 ids a second on Chez and 80,000
+    on Guile here: far below a reset.
+  - **Akku:** it installs a `unique-id/main.sls` link to `(unique-id)`. Akku's
+    chez-srfi has no SRFI-19 for Guile, so Guile uses its own. `akku publish` reads
+    the tag `v` plus the version, signs with gpg, and uploads.
+  - Guile with auto-compilation warns of a program's `hash`, which shadows its own; the
+    docs' renamed `test-hash` and `random-hash` avoid it.
 
 ### The docs: PR #6, 2026-11-23
 
