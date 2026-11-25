@@ -171,11 +171,19 @@ help: ## Show this help message
 	  END { format = "  \033[36m%-" width "s\033[0m %s\n"; \
 	        for (i = 1; i <= n; i++) printf format, name[i], text[i] }' $(MAKEFILE_LIST)
 
+# The files that tell contributors which targets to run.
+CONTRIBUTOR_DOCS := CONTRIBUTING.md .github/PULL_REQUEST_TEMPLATE.md .github/ISSUE_TEMPLATE/bug_report.md
+
 # Reads what `make help` prints, colour codes stripped, so it checks the
 # listing itself. Both directions: every .PHONY target is listed, and every
 # listed target is in .PHONY. A listed target left out of .PHONY silently
 # stops running once a file of its name exists.
-check-help: ## Fail unless `make help` lists exactly the .PHONY targets
+#
+# Then each target the contributor docs quote must be in .PHONY: every word
+# after `make` in a code span that starts with it, wrapped over lines or not,
+# and on a line in a fenced block that starts with it. A file that quotes none
+# fails too, since this check would then have read nothing in it.
+check-help: ## Fail unless `make help` lists exactly the .PHONY targets, and the contributor docs quote no other
 	@status=0; \
 	if grep -qE '^\.PHONY:.*\\$$' Makefile; then \
 	  echo "check-help: the .PHONY line ends in a backslash; keep it on one line" >&2; \
@@ -199,6 +207,25 @@ check-help: ## Fail unless `make help` lists exactly the .PHONY targets
 	    echo "check-help: make help lists '$$t', which is not in .PHONY" >&2; \
 	    status=1; \
 	  }; \
+	done; \
+	for f in $(CONTRIBUTOR_DOCS); do \
+	  [ -f "$$f" ] || { echo "check-help: $$f is missing" >&2; status=1; continue; }; \
+	  quoted=$$(awk '/^[ \t]*```/ { fence = !fence; next } \
+	    fence { if (match($$0, /^[ \t]*make( +[a-z][a-z0-9-]*)+/)) print substr($$0, RSTART, RLENGTH); next } \
+	    { text = text " " $$0 } \
+	    END { while (match(text, /`make( +[a-z][a-z0-9-]*)+/)) { \
+	            print substr(text, RSTART + 1, RLENGTH - 1); text = substr(text, RSTART + RLENGTH) } }' "$$f" \
+	    | awk '{ for (i = 2; i <= NF; i++) print $$i }' | sort -u); \
+	  [ -n "$$quoted" ] || { \
+	    echo "check-help: $$f quotes no make target, so this check read nothing in it" >&2; \
+	    status=1; \
+	  }; \
+	  for t in $$quoted; do \
+	    printf '%s\n' $$phony | grep -qxF "$$t" || { \
+	      echo "check-help: $$f quotes 'make $$t', and $$t is not a target" >&2; \
+	      status=1; \
+	    }; \
+	  done; \
 	done; \
 	exit $$status
 
