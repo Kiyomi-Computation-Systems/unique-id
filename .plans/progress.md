@@ -65,8 +65,6 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   passed every lane, the fork suite among them, on macOS 26.7.1 on arm64. It ran with
   Apple's GNU make 3.81, Homebrew's Chez 10.4.1, found as `chez`, and Guile 3.0.11.
   Nothing has run on an Intel Mac.
-- **`check-help`'s reading of the contributor docs has not run on macOS's awk**, only on
-  mawk, gawk and busybox awk. The next `make test` on the Mac runs it.
 - **Akku.** The package is not published. Akku 1.1.0 installed it into a clean project
   on 2026-11-23, and a program using all three libraries ran on Chez and on Guile;
   `akku publish` signs with the owner's key.
@@ -99,6 +97,11 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   - Before the change, `check-help` passed with a made-up target quoted. After it, 11
     mutants on a scratch copy each failed or passed as meant, under mawk, gawk 5.3.0
     and busybox awk. `nawk` on this host is mawk.
+  - On the owner's Mac, after the merge, at `ed43477`, with macOS's awk 20200816:
+    `make check-help` passed, and read the same targets from all three files as on
+    Linux. A planted target wrapped over a line and one on a fenced line each failed
+    it. A `make test` there passed every lane on Chez 10.4.1 and Guile 3.0.11, though
+    its log did not show the commit.
 - **Caught checking the drafts against the repository:**
   - The keyed hash's vectors come from the SipHash reference, not RFC 9562.
   - A docs link may go to a heading on the same page only.
