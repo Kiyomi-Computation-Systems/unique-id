@@ -22,6 +22,10 @@ before starting slice work. When a slice merges, update **Now** and add a close-
     [PR #6](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/6). The site
     is https://kiyomi-computation-systems.github.io/unique-id/, and a `v*` tag deploys
     it.
+- **The contributor docs are merged**: CONTRIBUTING.md, SECURITY.md and GitHub's
+  templates, squashed from
+  [PR #9](https://github.com/Kiyomi-Computation-Systems/unique-id/pull/9) on 2026-11-25;
+  its close-out is below. Private vulnerability reporting is on.
 - **Next:** publishing on Akku is the owner's call, and `akku publish` signs with the
   owner's key. The items under **Open** are the known work.
 
@@ -61,11 +65,48 @@ before starting slice work. When a slice merges, update **Now** and add a close-
   passed every lane, the fork suite among them, on macOS 26.7.1 on arm64. It ran with
   Apple's GNU make 3.81, Homebrew's Chez 10.4.1, found as `chez`, and Guile 3.0.11.
   Nothing has run on an Intel Mac.
+- **`check-help`'s reading of the contributor docs has not run on macOS's awk**, only on
+  mawk, gawk and busybox awk. The next `make test` on the Mac runs it.
 - **Akku.** The package is not published. Akku 1.1.0 installed it into a clean project
   on 2026-11-23, and a program using all three libraries ran on Chez and on Guile;
   `akku publish` signs with the owner's key.
 
 ## Close-outs
+
+### The contributor docs: PR #9, 2026-11-25
+
+- **The owner's ask:** a CONTRIBUTING.md "and similar". The owner then had GitHub's
+  private vulnerability reporting turned on, which SECURITY.md points to. It was off
+  here, though on for chez-http-server.
+- **What merged:**
+  - CONTRIBUTING.md, SECURITY.md, a pull-request template, and bug and feature issue
+    templates. They are the set chez-http-server, uriparse, chez-websocket, chez-libuv,
+    chez-sodium and chez-cmark-gfm carry, written for unique-id. SECURITY.md names the
+    reports most wanted: guessable or repeated ids, a generator that answers one id
+    twice, readers that accept what they should refuse, forged or changed ids, and
+    attacks on the keyed hash.
+  - README.org links CONTRIBUTING.md and SECURITY.md; CHANGELOG.md has an
+    `[Unreleased]` entry; AGENTS.md says these files restate its rules and change with
+    them.
+  - `make check-help` also fails when CONTRIBUTING.md, the PR template or the bug
+    report quotes a `make` target that is not in `.PHONY`, or quotes none. Unlike
+    chez-http-server's and uriparse's, it also reads fenced lines, and code spans
+    wrapped over two lines.
+- **How it was built:** by me, with no agents.
+- **Verified:**
+  - `make test` and `make check-site` on Chez 10.4.0 and Guile 3.0.11. CI on amd64,
+    arm64 and the `docs` job.
+  - Before the change, `check-help` passed with a made-up target quoted. After it, 11
+    mutants on a scratch copy each failed or passed as meant, under mawk, gawk 5.3.0
+    and busybox awk. `nawk` on this host is mawk.
+- **Caught checking the drafts against the repository:**
+  - The keyed hash's vectors come from the SipHash reference, not RFC 9562.
+  - A docs link may go to a heading on the same page only.
+  - A docs page never mentions `exit`, which is stricter than never calling it.
+  - `make check-site` runs on one image, not on both architectures.
+- **Also learned:** an `.akkuignore` line is a name, not a path. Akku's scanner skips
+  every file and directory of that name at any depth. It always skips dot files,
+  names ending in `~`, `Akku.lock` and `Akku.manifest`.
 
 ### Release 0.1.0: PR #8, 2026-11-23
 

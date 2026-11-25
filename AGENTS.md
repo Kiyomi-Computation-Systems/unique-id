@@ -175,7 +175,12 @@
   * a random result is `;; => e.g. VALUE`, which is checked for its shape alone;
   * a `;; =>` never follows a definition (ADR-0010).
 * `Makefile` should have a `help` command which lists all of its commands;
-  `make check-help` holds it to `.PHONY`.
+  `make check-help` holds it to `.PHONY`. It also fails when CONTRIBUTING.md, the
+  pull-request template or the bug report quotes a `make` target that is not in
+  `.PHONY`, or quotes none.
+* CONTRIBUTING.md, SECURITY.md and the templates under `.github/` restate this file's
+  rules for outside contributors, more briefly. Change them in the same commit as a
+  rule, a target or a version they name.
 * Libraries are R6RS `.sls`; libraries and programs contain their own code — no shared
   include bodies.
 

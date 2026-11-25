@@ -7,6 +7,17 @@ release before 1.0.
 
 ## [Unreleased]
 
+### Added
+
+- CONTRIBUTING.md, which says how to set up, which checks a pull request must pass,
+  what to do when changing a comment in `src/`, an example or a page in `docs/`, the
+  chez-srfi pin or the Makefile, and the house rules for code, tests and pull
+  requests. SECURITY.md says how to report a vulnerability privately. `.github/`
+  gains a pull-request template and bug and feature issue templates. README.org
+  links CONTRIBUTING.md and SECURITY.md.
+- `make check-help` also fails when CONTRIBUTING.md, the pull-request template or the
+  bug report quotes a `make` target the Makefile lacks.
+
 ## [0.1.0] - 2026-11-23
 
 The first release.
